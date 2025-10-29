@@ -1,0 +1,41 @@
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+main { max-width: 960px; margin: 0 auto; padding: 20px; }
+
+/* 사이드 위젯 공통 반응형 스타일 */
+@media (max-width: 900px) {
+  section {
+    padding: 12px 14px !important;
+    font-size: 13px !important;
+  }
+}
+
+@media (max-width: 700px) {
+  section {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    padding: 10px !important;
+    font-size: 14px !important;
+    border-radius: 50px !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08) !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease;
+  }
+
+  section:hover {
+    background-color: #f9f9f9;
+  }
+
+  /* 내부 텍스트 숨기고 타이틀만 */
+  section > div > div:last-child {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1200px) {
+  main {
+    grid-template-columns: 250px 1fr 250px !important;
+  }
+}
