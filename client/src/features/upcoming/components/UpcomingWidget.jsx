@@ -1,88 +1,121 @@
-import { useMemo, useState } from "react";
-import { useEvents } from "../../../app/store/eventsContext";
-
-const CARD = {
-  border: "1px solid #e5e5e5",
-  borderRadius: 8,
-  padding: "10px 12px",
-  background: "#fff",
-};
+import { useMemo } from "react";
+import { useEvents } from "../../../app/store/eventsStore";
 
 export default function UpcomingWidget() {
-  const { upcomingWithin, cycleIcon } = useEvents();
-  const [range, setRange] = useState(3); // 다음 3일
+  const { getUpcoming } = useEvents();
 
-  const items = useMemo(() => upcomingWithin(range), [range, upcomingWithin]);
+  // 다음 3일(설정 가능)
+  const items = useMemo(() => getUpcoming(3), [getUpcoming]);
 
   return (
-    <section>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, height: "100%" }}>
+      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <strong>Upcoming</strong>
-        <span style={{ color: "#777", fontSize: 12 }}>다음 {range}일</span>
+        <span style={{ fontSize: 12, color: "#888" }}>다음 3일</span>
       </header>
 
       <div
         style={{
-          ...CARD,
-          maxHeight: 280,
-          overflowY: "auto",
-          padding: 0,
+          border: "1px solid #eee",
+          borderRadius: 10,
+          padding: 12,
+          height: 240,             // 위젯 고정 높이
+          overflowY: "auto",       // 내부 스크롤
         }}
       >
-        {items.map((ev) => (
-          <article key={ev.id} style={{ ...CARD, border: "none", borderBottom: "1px solid #f0f0f0", borderRadius: 0 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, color: "#555", fontSize: 12 }}>
-              <span>{formatUpcomingDate(ev.date)}</span>
-              {ev.category ? (
-                <small style={{ background: "#f5f5ff", border: "1px solid #e6e6ff", color: "#6b6bd6", borderRadius: 6, padding: "2px 6px" }}>
-                  {ev.category}
-                </small>
-              ) : null}
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <button
-                onClick={() => cycleIcon(ev.id)}
-                title="아이콘 변경"
-                style={{
-                  width: 22,
-                  height: 22,
-                  lineHeight: "22px",
-                  textAlign: "center",
-                  borderRadius: 6,
-                  border: "1px solid #e5e5e5",
-                  background: "#fff",
-                  cursor: "pointer",
-                  fontWeight: ev.icon === "★" ? 700 : 400,
-                  color: ev.icon === "★" ? "#E3B400" : "#000",
-                }}
-              >
-                {ev.icon}
-              </button>
-              <div style={{ fontWeight: 700 }}>{ev.title}</div>
-            </div>
-          </article>
-        ))}
-
-        {!items.length && (
-          <div style={{ padding: 16, color: "#777", textAlign: "center" }}>예정된 일정이 없습니다.</div>
+        {items.length === 0 ? (
+          <div style={{ color: "#888", fontSize: 14 }}>예정된 일정이 없습니다.</div>
+        ) : (
+          <div style={{ display: "grid", gap: 10 }}>
+            {items.map(ev => (
+              <UpcomingCard key={ev.id} ev={ev} />
+            ))}
+          </div>
         )}
       </div>
-    </section>
+    </div>
   );
 }
 
-function formatUpcomingDate(iso) {
-  const today = new Date();
-  const d = new Date(iso);
-  const d0 = strip(today);
-  const d1 = strip(d);
+function UpcomingCard({ ev }) {
+  return (
+    <button
+      style={{
+        width: "100%",
+        textAlign: "left",
+        border: "1px solid #e5e5e5",
+        borderRadius: 8,
+        padding: "10px 12px",
+        background: "#fafafa",
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        cursor: "pointer",
+      }}
+      onClick={() => {
+        // 상세 모달 연동은 CalendarMonth에서 이미 구현됨.
+        // 여기서는 클릭 시 페이지 중앙 모듈과 연결 예정.
+      }}
+    >
+      {/* 날짜/시간 */}
+      <div style={{ minWidth: 70, fontSize: 12, color: "#666" }}>
+        <div style={{ fontWeight: 600 }}>{formatDay(ev.day)}</div>
+        <div>{ev.timeLabel || "시간 미정"}</div>
+      </div>
 
-  const diff = Math.round((d1 - d0) / (1000 * 60 * 60 * 24));
-  if (diff === 0) return "오늘";
-  if (diff === 1) return "내일";
+      {/* 구분선 */}
+      <div style={{ width: 1, height: 24, background: "#ddd" }} />
 
-  const w = ["일", "월", "화", "수", "목", "금", "토"][d.getDay()];
-  return `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")} (${w})`;
+      {/* 아이콘 + 제목/카테고리 */}
+      <div style={{ flex: 1 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ color: ev.icon === "★" ? "#E3B400" : "#000", fontWeight: ev.icon === "★" ? 700 : 400 }}>
+            {ev.icon}
+          </span>
+          <strong style={{ fontSize: 14 }}>{ev.title}</strong>
+
+          {/* 반복 아이콘(제목 오른쪽) */}
+          {ev.repeat === "monthly" && (
+            <span title="매월 반복" style={{ marginLeft: 6 }}>🔁</span>
+          )}
+        </div>
+        <div style={{ fontSize: 12, color: "#777", marginTop: 2 }}>
+          <CategoryBadge name={ev.category} />
+        </div>
+      </div>
+    </button>
+  );
 }
-function strip(x) { const y = new Date(x); y.setHours(0,0,0,0); return y; }
+
+function CategoryBadge({ name }) {
+  const palette = {
+    개인: "#51cf66",
+    업무: "#339af0",
+    건강: "#ff8787",
+    금융: "#845ef7",
+    기타: "#868e96",
+  };
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        padding: "2px 8px",
+        borderRadius: 999,
+        background: (palette[name] || "#ced4da") + "22",
+        color: palette[name] || "#495057",
+        fontWeight: 600,
+      }}
+    >
+      {name}
+    </span>
+  );
+}
+
+function formatDay(day) {
+  // 오늘/내일 표기, 그 외 MM.DD 스타일은 달력 페이지에서 확장 예정
+  const now = new Date();
+  const today = Math.min(30, Math.max(1, now.getDate()));
+  if (day === today) return "오늘";
+  if (day === today + 1) return "내일";
+  return `정해진 날 ${String(day).padStart(2, "0")}`;
+}
