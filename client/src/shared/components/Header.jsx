@@ -5,30 +5,23 @@ export default function Header() {
   const nav = useNavigate();
   const { pathname } = useLocation();
 
-  // TODO: auth 연결되면 실제 로그인 여부로 변경
+  // TODO: 실제 인증 연동 시 교체
   const isLoggedIn = false;
 
-  // TODO: 나중에 MyPage 설정 기반으로 로드할 문구 목록
+  // TODO: 마이페이지 설정 기반 로드 예정
   const quotes = [
     "기록은 기억을 이깁니다.",
     "조금 늦어도 괜찮아요. 꾸준하면 돼요.",
     "오늘의 할 일은 나를 지치게 하지 않아요.",
     "나만의 일정관리 SOLAN을 사용해보세요.",
   ];
-
   const [quoteIndex, setQuoteIndex] = useState(0);
 
-  const prevQuote = () => {
+  const prevQuote = () =>
     setQuoteIndex((i) => (i - 1 + quotes.length) % quotes.length);
-  };
+  const nextQuote = () => setQuoteIndex((i) => (i + 1) % quotes.length);
 
-  const nextQuote = () => {
-    setQuoteIndex((i) => (i + 1) % quotes.length);
-  };
-
-  const goHome = () => {
-    nav("/");
-  };
+  const goHome = () => nav("/");
 
   return (
     <header
@@ -50,7 +43,7 @@ export default function Header() {
           lineHeight: 1.2,
         }}
       >
-        {/* 왼쪽: 로고 */}
+        {/* 로고 */}
         <div
           style={{
             justifySelf: "start",
@@ -65,7 +58,7 @@ export default function Header() {
           oz-union-fe-12-sunyoung
         </div>
 
-        {/* 가운데: 오늘의 문구 라인 (얇은 카드 느낌) */}
+        {/* 오늘의 문구 */}
         <div
           style={{
             justifySelf: "center",
@@ -83,20 +76,18 @@ export default function Header() {
             fontWeight: 500,
             color: "#000",
           }}
+          title={quotes[quoteIndex]}
         >
-          {/* 문구 전체 */}
           <div
             style={{
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
             }}
-            title={quotes[quoteIndex]}
           >
             {quotes[quoteIndex]}
           </div>
 
-          {/* 우하단 조작 영역 */}
           <div
             style={{
               position: "absolute",
@@ -110,25 +101,15 @@ export default function Header() {
               lineHeight: 1,
             }}
           >
-            <span
-              style={{
-                minWidth: "32px",
-                textAlign: "right",
-              }}
-            >
+            <span style={{ minWidth: 32, textAlign: "right" }}>
               {quoteIndex + 1}/{quotes.length}
             </span>
-
-            <ArrowButton onClick={prevQuote} label="이전">
-              ◀
-            </ArrowButton>
-            <ArrowButton onClick={nextQuote} label="다음">
-              ▶
-            </ArrowButton>
+            <ArrowButton onClick={prevQuote} label="이전">◀</ArrowButton>
+            <ArrowButton onClick={nextQuote} label="다음">▶</ArrowButton>
           </div>
         </div>
 
-        {/* 오른쪽: 네비게이션 */}
+        {/* 네비게이션 */}
         <nav
           style={{
             justifySelf: "end",
@@ -140,24 +121,16 @@ export default function Header() {
             whiteSpace: "nowrap",
           }}
         >
-          <HeaderNavLink to="/" active={pathname === "/"}>
-            캘린더
-          </HeaderNavLink>
-
-          <HeaderNavLink to="/notes" active={pathname.startsWith("/notes")}>
-            메모
-          </HeaderNavLink>
+          <HeaderNavLink to="/" active={pathname === "/"}>캘린더</HeaderNavLink>
+          <HeaderNavLink to="/notes" active={pathname.startsWith("/notes")}>메모</HeaderNavLink>
+          <HeaderNavLink to="/categories" active={pathname.startsWith("/categories")}>카테고리</HeaderNavLink>
 
           <span style={{ color: "#aaa" }}>|</span>
 
           {isLoggedIn ? (
             <Link
               to="/mypage"
-              style={{
-                textDecoration: "none",
-                fontWeight: 600,
-                color: "#222",
-              }}
+              style={{ textDecoration: "none", fontWeight: 600, color: "#222" }}
             >
               마이페이지
             </Link>
@@ -165,11 +138,7 @@ export default function Header() {
             <Link
               to="/login"
               state={{ modal: true, from: pathname }}
-              style={{
-                textDecoration: "none",
-                fontWeight: 600,
-                color: "#5f3dc4", // 살짝 포인트 색
-              }}
+              style={{ textDecoration: "none", fontWeight: 600, color: "#5f3dc4" }}
             >
               로그인
             </Link>
@@ -180,7 +149,6 @@ export default function Header() {
   );
 }
 
-// 오른쪽 네비에 쓰는 일반 링크 스타일
 function HeaderNavLink({ to, active, children }) {
   return (
     <Link
