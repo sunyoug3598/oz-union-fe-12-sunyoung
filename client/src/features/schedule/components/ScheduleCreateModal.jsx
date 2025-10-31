@@ -4,19 +4,37 @@ import Modal from "../../../shared/components/Modal";
 export default function ScheduleCreateModal({
   open,
   onClose,
-  onCreate,
-  defaultDay, // 숫자(1~30) 또는 null
+  onSubmit,      // (data, dayNum) => void
+  defaultDay,    // number | null
+  initialEvent,  // 편집 시: { id, day, title, timeLabel, category, repeat, icon }
 }) {
+  const isEdit = !!initialEvent;
+
   const [title, setTitle] = useState("");
   const [day, setDay] = useState(defaultDay || "");
   const [timeLabel, setTimeLabel] = useState("");
   const [category, setCategory] = useState("개인");
   const [repeat, setRepeat] = useState("none"); // none | monthly
-  const [statusIcon, setStatusIcon] = useState("●"); // ● ✕ → － ○ ★
+  const [statusIcon, setStatusIcon] = useState("●");
 
   useEffect(() => {
-    setDay(defaultDay || "");
-  }, [defaultDay, open]);
+    if (!open) return;
+    if (isEdit) {
+      setTitle(initialEvent?.title ?? "");
+      setDay(initialEvent?.day ?? "");
+      setTimeLabel(initialEvent?.timeLabel ?? "");
+      setCategory(initialEvent?.category ?? "개인");
+      setRepeat(initialEvent?.repeat === "monthly" ? "monthly" : "none");
+      setStatusIcon(initialEvent?.icon ?? "●");
+    } else {
+      setTitle("");
+      setDay(defaultDay || "");
+      setTimeLabel("");
+      setCategory("개인");
+      setRepeat("none");
+      setStatusIcon("●");
+    }
+  }, [open, isEdit, initialEvent, defaultDay]);
 
   const disabled = !title || !day;
 
@@ -24,30 +42,29 @@ export default function ScheduleCreateModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="새 일정 추가"
+      title={isEdit ? "일정 수정" : "새 일정 추가"}
       footer={
         <>
           <button
             onClick={onClose}
-            style={{
-              border: "1px solid #ccc",
-              background: "#fff",
-              borderRadius: 6,
-              padding: "6px 10px",
-              cursor: "pointer",
-            }}
+            style={{ border: "1px solid #ccc", background: "#fff", borderRadius: 6, padding: "6px 10px", cursor: "pointer" }}
           >
             취소
           </button>
           <button
             onClick={() => {
-              onCreate?.({
-                title,
-                timeLabel: timeLabel || "시간 미정",
-                category,
-                repeat: repeat === "monthly" ? "monthly" : null,
-                icon: statusIcon,
-              }, Number(day));
+              onSubmit?.(
+                {
+                  id: initialEvent?.id,
+                  title,
+                  timeLabel: timeLabel || "시간 미정",
+                  category,
+                  repeat: repeat === "monthly" ? "monthly" : null,
+                  icon: statusIcon,
+                  fromDay: initialEvent?.day ?? null,
+                },
+                Number(day)
+              );
             }}
             disabled={disabled}
             style={{
@@ -60,40 +77,22 @@ export default function ScheduleCreateModal({
               fontWeight: 700,
             }}
           >
-            저장
+            {isEdit ? "수정 저장" : "저장"}
           </button>
         </>
       }
     >
       <div style={{ display: "grid", gap: 12 }}>
         <Field label="제목">
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="일정 제목"
-            style={input}
-          />
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="일정 제목" style={input} />
         </Field>
 
         <Field label="날짜">
-          <input
-            type="number"
-            min={1}
-            max={30}
-            value={day}
-            onChange={(e) => setDay(e.target.value)}
-            placeholder="1~30"
-            style={{ ...input, width: 120 }}
-          />
+          <input type="number" min={1} max={30} value={day} onChange={(e) => setDay(e.target.value)} placeholder="1~30" style={{ ...input, width: 120 }} />
         </Field>
 
         <Field label="시간">
-          <input
-            value={timeLabel}
-            onChange={(e) => setTimeLabel(e.target.value)}
-            placeholder="예: 14:00 / 하루 종일"
-            style={input}
-          />
+          <input value={timeLabel} onChange={(e) => setTimeLabel(e.target.value)} placeholder="예: 14:00 / 하루 종일" style={input} />
         </Field>
 
         <Field label="카테고리">
