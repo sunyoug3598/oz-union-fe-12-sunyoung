@@ -1,10 +1,11 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useEvents } from "../../../app/store/eventsStore";
+import ScheduleDetailModal from "../../schedule/components/ScheduleDetailModal";
 
 export default function UpcomingWidget() {
-  const { getUpcoming } = useEvents();
+  const { getUpcoming, deleteEvent } = useEvents();
+  const [detail, setDetail] = useState(null); // 클릭한 일정
 
-  // 다음 3일(설정 가능)
   const items = useMemo(() => getUpcoming(3), [getUpcoming]);
 
   return (
@@ -19,27 +20,43 @@ export default function UpcomingWidget() {
           border: "1px solid #eee",
           borderRadius: 10,
           padding: 12,
-          height: 240,             // 위젯 고정 높이
-          overflowY: "auto",       // 내부 스크롤
+          height: 240,          // 고정 높이
+          overflowY: "auto",    // 내부 스크롤
         }}
       >
         {items.length === 0 ? (
           <div style={{ color: "#888", fontSize: 14 }}>예정된 일정이 없습니다.</div>
         ) : (
           <div style={{ display: "grid", gap: 10 }}>
-            {items.map(ev => (
-              <UpcomingCard key={ev.id} ev={ev} />
+            {items.map((ev) => (
+              <UpcomingCard key={ev.id} ev={ev} onClick={() => setDetail(ev)} />
             ))}
           </div>
         )}
       </div>
+
+      {/* 상세 모달: 위젯 로컬 상태로 제어 */}
+      <ScheduleDetailModal
+        open={!!detail}
+        event={detail}
+        onClose={() => setDetail(null)}
+        onEdit={() => {
+          // 캘린더의 편집 모달까지 연동은 다음 단계에서.
+          alert("편집은 캘린더에서 먼저 연결하자! (다음 단계)");
+        }}
+        onDelete={(ev) => {
+          deleteEvent(ev.day, ev.id);
+          setDetail(null);
+        }}
+      />
     </div>
   );
 }
 
-function UpcomingCard({ ev }) {
+function UpcomingCard({ ev, onClick }) {
   return (
     <button
+      onClick={onClick}
       style={{
         width: "100%",
         textAlign: "left",
@@ -51,10 +68,6 @@ function UpcomingCard({ ev }) {
         alignItems: "center",
         gap: 10,
         cursor: "pointer",
-      }}
-      onClick={() => {
-        // 상세 모달 연동은 CalendarMonth에서 이미 구현됨.
-        // 여기서는 클릭 시 페이지 중앙 모듈과 연결 예정.
       }}
     >
       {/* 날짜/시간 */}
@@ -73,11 +86,7 @@ function UpcomingCard({ ev }) {
             {ev.icon}
           </span>
           <strong style={{ fontSize: 14 }}>{ev.title}</strong>
-
-          {/* 반복 아이콘(제목 오른쪽) */}
-          {ev.repeat === "monthly" && (
-            <span title="매월 반복" style={{ marginLeft: 6 }}>🔁</span>
-          )}
+          {ev.repeat === "monthly" && <span title="매월 반복" style={{ marginLeft: 6 }}>🔁</span>}
         </div>
         <div style={{ fontSize: 12, color: "#777", marginTop: 2 }}>
           <CategoryBadge name={ev.category} />
@@ -112,7 +121,6 @@ function CategoryBadge({ name }) {
 }
 
 function formatDay(day) {
-  // 오늘/내일 표기, 그 외 MM.DD 스타일은 달력 페이지에서 확장 예정
   const now = new Date();
   const today = Math.min(30, Math.max(1, now.getDate()));
   if (day === today) return "오늘";
