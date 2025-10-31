@@ -6,25 +6,20 @@ import ScheduleCreateModal from "./ScheduleCreateModal";
 import { useEvents } from "../../../app/store/eventsStore";
 
 export default function CalendarMonth() {
-  const {
-    monthLabel,
-    events,
-    addEvent,
-    editEvent,
-    deleteEvent,
-  } = useEvents();
-
+  const [month] = useState("2025년 11월");
   const [openDay, setOpenDay] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [createForDay, setCreateForDay] = useState(null);
   const [editTarget, setEditTarget] = useState(null);
 
+  const { getByDay, addEvent, editEvent, deleteEvent } = useEvents();
+
   const days = Array.from({ length: 30 }, (_, i) => i + 1);
 
   const dayItems = useMemo(() => {
     if (!openDay) return [];
-    return (events[openDay] || []).map(e => ({
+    return getByDay(openDay).map((e) => ({
       id: e.id,
       day: openDay,
       title: e.title,
@@ -33,11 +28,15 @@ export default function CalendarMonth() {
       repeat: e.repeat || null,
       statusIcon: e.icon,
     }));
-  }, [openDay, events]);
+  }, [openDay, getByDay]);
 
+  const handleClickDay = (day) => setOpenDay(day);
+
+  // 추가
   const handleCreateSubmit = (data, dayNum) => {
+    const id = data.id || String(Date.now());
     addEvent(dayNum, {
-      id: data.id,
+      id,
       icon: data.icon,
       title: data.title,
       timeLabel: data.timeLabel,
@@ -49,11 +48,19 @@ export default function CalendarMonth() {
     setOpenDay(dayNum);
   };
 
+  // 삭제
+  const handleDelete = (ev) => {
+    const fromDay = ev.day ?? openDay;
+    if (!fromDay) return;
+    deleteEvent(fromDay, ev.id);
+    setSelectedEvent(null);
+  };
+
+  // 수정
   const handleEditSubmit = (data, toDay) => {
-    const id = data.id;
+    const id = data.id || editTarget?.id;
     const fromDay = data.fromDay ?? editTarget?.day;
     if (!id || !fromDay) return;
-
     editEvent(fromDay, toDay, {
       id,
       icon: data.icon,
@@ -62,24 +69,16 @@ export default function CalendarMonth() {
       category: data.category,
       repeat: data.repeat || null,
     });
-
     setEditTarget(null);
     setCreateOpen(false);
     setOpenDay(toDay);
     setSelectedEvent(null);
   };
 
-  const handleDelete = (ev) => {
-    const fromDay = ev.day ?? openDay;
-    if (!fromDay) return;
-    deleteEvent(fromDay, ev.id);
-    setSelectedEvent(null);
-  };
-
   return (
     <>
       <TopBar
-        month={monthLabel}
+        month={month}
         onPrev={() => {}}
         onNext={() => {}}
         onAdd={() => {
@@ -99,57 +98,73 @@ export default function CalendarMonth() {
           fontSize: "13px",
         }}
       >
-        {days.map((day) => (
-          <div
-            key={day}
-            onClick={() => setOpenDay(day)}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f0f0f0")}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#fafafa")}
-            style={{
-              backgroundColor: "#fafafa",
-              border: "1px solid #eee",
-              borderRadius: "6px",
-              minHeight: "110px",
-              padding: "6px 8px",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-start",
-              cursor: "pointer",
-              transition: "all 0.15s ease",
-            }}
-          >
-            <strong style={{ fontSize: "12px", color: "#222" }}>{day}</strong>
+        {days.map((day) => {
+          const events = getByDay(day);
+          return (
+            <div
+              key={day}
+              onClick={() => handleClickDay(day)}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f0f0f0")}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#fafafa")}
+              style={{
+                backgroundColor: "#fafafa",
+                border: "1px solid #eee",
+                borderRadius: "6px",
+                minHeight: "110px",
+                padding: "6px 8px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-start",
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <strong style={{ fontSize: "12px", color: "#222" }}>{day}</strong>
 
-            {(events[day] || []).slice(0, 2).map((event) => (
-              <div
-                key={event.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px",
-                  marginTop: "4px",
-                  fontSize: "12px",
-                  lineHeight: 1.3,
-                  color: "#333",
-                  width: "100%",
-                }}
-              >
-                <span style={{ color: event.icon === "★" ? "#E3B400" : "#000", fontWeight: event.icon === "★" ? 700 : 400 }}>
-                  {event.icon}
-                </span>
-                <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>
-                  {event.title}
-                </span>
-              </div>
-            ))}
-          </div>
-        ))}
+              {events.slice(0, 2).map((event) => (
+                <div
+                  key={event.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    marginTop: "4px",
+                    fontSize: "12px",
+                    lineHeight: 1.3,
+                    color: "#333",
+                    width: "100%",
+                  }}
+                >
+                  <span
+                    style={{
+                      color: event.icon === "★" ? "#E3B400" : "#000",
+                      fontWeight: event.icon === "★" ? 700 : 400,
+                    }}
+                  >
+                    {event.icon}
+                  </span>
+                  <span
+                    style={{
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      maxWidth: "100%",
+                    }}
+                  >
+                    {event.title}
+                  </span>
+                </div>
+              ))}
+            </div>
+          );
+        })}
       </div>
 
+      {/* 당일 리스트 모달 */}
       <Modal
         open={openDay != null}
         onClose={() => setOpenDay(null)}
-        title={`${monthLabel} ${openDay ?? ""}일 일정`}
+        title={`${month} ${openDay ?? ""}일 일정`}
         footer={
           <>
             <button
@@ -172,7 +187,7 @@ export default function CalendarMonth() {
         }
       >
         <DayScheduleList
-          dateLabel={`${monthLabel} ${openDay ?? ""}일`}
+          dateLabel={`${month} ${openDay ?? ""}일`}
           items={dayItems}
           onClickItem={(ev) => {
             setOpenDay(null);
@@ -181,6 +196,7 @@ export default function CalendarMonth() {
         />
       </Modal>
 
+      {/* 상세 모달 */}
       <ScheduleDetailModal
         open={!!selectedEvent}
         onClose={() => setSelectedEvent(null)}
@@ -193,6 +209,7 @@ export default function CalendarMonth() {
         onDelete={handleDelete}
       />
 
+      {/* 추가/수정 공용 모달 */}
       <ScheduleCreateModal
         open={createOpen}
         onClose={() => {

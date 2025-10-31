@@ -6,13 +6,14 @@ export default function UpcomingWidget() {
   const { getUpcoming, deleteEvent } = useEvents();
   const [detail, setDetail] = useState(null); // 클릭한 일정
 
-  const items = useMemo(() => getUpcoming(3), [getUpcoming]);
+  // ✅ 다음 7일로 변경
+  const items = useMemo(() => getUpcoming(7), [getUpcoming]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, height: "100%" }}>
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <strong>Upcoming</strong>
-        <span style={{ fontSize: 12, color: "#888" }}>다음 3일</span>
+        <span style={{ fontSize: 12, color: "#888" }}>다음 7일</span>
       </header>
 
       <div
@@ -35,13 +36,12 @@ export default function UpcomingWidget() {
         )}
       </div>
 
-      {/* 상세 모달: 위젯 로컬 상태로 제어 */}
+      {/* 상세 모달 */}
       <ScheduleDetailModal
         open={!!detail}
         event={detail}
         onClose={() => setDetail(null)}
         onEdit={() => {
-          // 캘린더의 편집 모달까지 연동은 다음 단계에서.
           alert("편집은 캘린더에서 먼저 연결하자! (다음 단계)");
         }}
         onDelete={(ev) => {
@@ -85,7 +85,7 @@ function UpcomingCard({ ev, onClick }) {
           <span style={{ color: ev.icon === "★" ? "#E3B400" : "#000", fontWeight: ev.icon === "★" ? 700 : 400 }}>
             {ev.icon}
           </span>
-          <strong style={{ fontSize: 14 }}>{ev.title}</strong>
+        <strong style={{ fontSize: 14 }}>{ev.title}</strong>
           {ev.repeat === "monthly" && <span title="매월 반복" style={{ marginLeft: 6 }}>🔁</span>}
         </div>
         <div style={{ fontSize: 12, color: "#777", marginTop: 2 }}>
