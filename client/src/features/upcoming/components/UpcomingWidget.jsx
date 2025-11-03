@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
 import { useEvents } from "../../../app/store/eventsStore";
+import { CATEGORY_COLORS, getIconColor } from "../../../app/constants/uiTokens";
 import ScheduleDetailModal from "../../schedule/components/ScheduleDetailModal";
 
 export default function UpcomingWidget() {
   const { getUpcoming, deleteEvent } = useEvents();
-  const [detail, setDetail] = useState(null); // 클릭한 일정
+  const [detail, setDetail] = useState(null);
 
-  // ✅ 다음 7일로 변경
   const items = useMemo(() => getUpcoming(7), [getUpcoming]);
 
   return (
@@ -21,8 +21,8 @@ export default function UpcomingWidget() {
           border: "1px solid #eee",
           borderRadius: 10,
           padding: 12,
-          height: 240,          // 고정 높이
-          overflowY: "auto",    // 내부 스크롤
+          height: 240,
+          overflowY: "auto",
         }}
       >
         {items.length === 0 ? (
@@ -36,7 +36,6 @@ export default function UpcomingWidget() {
         )}
       </div>
 
-      {/* 상세 모달 */}
       <ScheduleDetailModal
         open={!!detail}
         event={detail}
@@ -70,22 +69,19 @@ function UpcomingCard({ ev, onClick }) {
         cursor: "pointer",
       }}
     >
-      {/* 날짜/시간 */}
       <div style={{ minWidth: 70, fontSize: 12, color: "#666" }}>
         <div style={{ fontWeight: 600 }}>{formatDay(ev.day)}</div>
         <div>{ev.timeLabel || "시간 미정"}</div>
       </div>
 
-      {/* 구분선 */}
       <div style={{ width: 1, height: 24, background: "#ddd" }} />
 
-      {/* 아이콘 + 제목/카테고리 */}
       <div style={{ flex: 1 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ color: ev.icon === "★" ? "#E3B400" : "#000", fontWeight: ev.icon === "★" ? 700 : 400 }}>
+          <span style={{ color: getIconColor(ev.icon), fontWeight: ev.icon === "★" ? 700 : 400 }}>
             {ev.icon}
           </span>
-        <strong style={{ fontSize: 14 }}>{ev.title}</strong>
+          <strong style={{ fontSize: 14 }}>{ev.title}</strong>
           {ev.repeat === "monthly" && <span title="매월 반복" style={{ marginLeft: 6 }}>🔁</span>}
         </div>
         <div style={{ fontSize: 12, color: "#777", marginTop: 2 }}>
@@ -97,22 +93,18 @@ function UpcomingCard({ ev, onClick }) {
 }
 
 function CategoryBadge({ name }) {
-  const palette = {
-    개인: "#51cf66",
-    업무: "#339af0",
-    건강: "#ff8787",
-    금융: "#845ef7",
-    기타: "#868e96",
-  };
+  const fg = CATEGORY_COLORS[name] || "#495057";
+  const bg = (CATEGORY_COLORS[name] || "#ced4da") + "22";
   return (
     <span
       style={{
         display: "inline-block",
         padding: "2px 8px",
         borderRadius: 999,
-        background: (palette[name] || "#ced4da") + "22",
-        color: palette[name] || "#495057",
+        background: bg,
+        color: fg,
         fontWeight: 600,
+        fontSize: 11,
       }}
     >
       {name}
