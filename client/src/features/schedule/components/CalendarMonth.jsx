@@ -4,7 +4,7 @@ import DayScheduleList from "./DayScheduleList";
 import ScheduleDetailModal from "./ScheduleDetailModal";
 import ScheduleCreateModal from "./ScheduleCreateModal";
 import { useEvents } from "../../../app/store/eventsStore";
-import { getIconColor } from "../../../app/constants/uiTokens";
+import { getIconColor, getIconChar } from "../../../app/constants/uiTokens";
 
 export default function CalendarMonth() {
   const [month] = useState("2025년 11월");
@@ -135,10 +135,10 @@ export default function CalendarMonth() {
                   <span
                     style={{
                       color: getIconColor(event.icon),
-                      fontWeight: event.icon === "★" ? 700 : 400,
+                      fontWeight: getIconChar(event.icon) === "★" ? 700 : 400,
                     }}
                   >
-                    {event.icon}
+                    {getIconChar(event.icon)}
                   </span>
                   <span
                     style={{

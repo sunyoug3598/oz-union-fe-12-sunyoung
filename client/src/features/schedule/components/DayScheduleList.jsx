@@ -1,4 +1,5 @@
-// 상태 아이콘 규칙: ● 할 일 / ✕ 완료 / → 이월 / － 메모 / ○ 이벤트 / ★ 중요
+import { getIconColor, getIconChar } from "../../../app/constants/uiTokens";
+
 export default function DayScheduleList({ dateLabel, items = [], onClickItem }) {
   if (!items.length) {
     return <div style={{ color: "#777" }}>해당 날짜의 일정이 없습니다.</div>;
@@ -8,7 +9,7 @@ export default function DayScheduleList({ dateLabel, items = [], onClickItem }) 
     <div style={{ display: "grid", gap: 8 }}>
       {items.map((ev, idx) => (
         <button
-          key={idx}
+          key={ev.id || idx}
           onClick={() => onClickItem?.(ev)}
           style={{
             textAlign: "left",
@@ -25,11 +26,11 @@ export default function DayScheduleList({ dateLabel, items = [], onClickItem }) 
           <span
             style={{
               minWidth: 16,
-              color: ev.statusIcon === "★" ? "#E3B400" : "#000",
-              fontWeight: ev.statusIcon === "★" ? 700 : 400,
+              color: getIconColor(ev.statusIcon || ev.icon),
+              fontWeight: getIconChar(ev.statusIcon || ev.icon) === "★" ? 700 : 400,
             }}
           >
-            {ev.statusIcon || "•"}
+            {getIconChar(ev.statusIcon || ev.icon) || "•"}
           </span>
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 700, marginBottom: 2 }}>{ev.title}</div>

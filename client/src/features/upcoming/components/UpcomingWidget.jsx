@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useEvents } from "../../../app/store/eventsStore";
-import { CATEGORY_COLORS, getIconColor } from "../../../app/constants/uiTokens";
+import { CATEGORY_COLORS, getIconColor, getIconChar } from "../../../app/constants/uiTokens";
 import ScheduleDetailModal from "../../schedule/components/ScheduleDetailModal";
 
 export default function UpcomingWidget() {
@@ -78,11 +78,15 @@ function UpcomingCard({ ev, onClick }) {
 
       <div style={{ flex: 1 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ color: getIconColor(ev.icon), fontWeight: ev.icon === "★" ? 700 : 400 }}>
-            {ev.icon}
+          <span style={{ color: getIconColor(ev.icon), fontWeight: getIconChar(ev.icon) === "★" ? 700 : 400 }}>
+            {getIconChar(ev.icon)}
           </span>
           <strong style={{ fontSize: 14 }}>{ev.title}</strong>
-          {ev.repeat === "monthly" && <span title="매월 반복" style={{ marginLeft: 6 }}>🔁</span>}
+          {ev.repeat === "monthly" && (
+            <span title="매월 반복" style={{ marginLeft: 6 }}>
+              🔁
+            </span>
+          )}
         </div>
         <div style={{ fontSize: 12, color: "#777", marginTop: 2 }}>
           <CategoryBadge name={ev.category} />
