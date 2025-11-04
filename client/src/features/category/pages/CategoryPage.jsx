@@ -1,12 +1,12 @@
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { CategoryProvider, useCategories } from "../../../app/store/categoryStore";
 import { useEvents } from "../../../app/store/eventsStore";
 import CategoryGrid from "../components/CategoryGrid";
 import NewCategoryModal from "../components/NewCategoryModal";
 import CategoryListModal from "../components/CategoryListModal";
-import { useState, useMemo } from "react";
 
 export default function CategoryPage() {
-  // Page 내부에서만 Provider로 감싸 App 전체 손대지 않음
   return (
     <CategoryProvider>
       <CategoryPageInner />
@@ -16,13 +16,17 @@ export default function CategoryPage() {
 
 function CategoryPageInner() {
   const { filtered, keyword, setKeyword, viewMode, setViewMode } = useCategories();
-  const { events } = useEvents(); // { [day]: Event[] }
+  const { events } = useEvents();
   const [openCreate, setOpenCreate] = useState(false);
+  const [activeCat, setActiveCat] = useState(null);
+  const [searchParams] = useSearchParams();
 
-  // 카드 클릭 → 카테고리별 일정 모달
-  const [activeCat, setActiveCat] = useState(null); // { id, name, color }
+  // ✅ URL 쿼리에서 filter 파라미터 읽기
+  useEffect(() => {
+    const q = searchParams.get("filter");
+    if (q) setKeyword(q);
+  }, [searchParams, setKeyword]);
 
-  // 카테고리별 일정 수 계산
   const counts = useMemo(() => {
     const map = {};
     const allDays = Object.keys(events || {});
@@ -32,12 +36,11 @@ function CategoryPageInner() {
         map[key] = (map[key] || 0) + 1;
       });
     }
-    return map; // { '개인': 2, '업무': 3, ...}
+    return map;
   }, [events]);
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
-      {/* 상단 바 */}
       <header style={{ display: "flex", gap: 12, alignItems: "center" }}>
         <input
           value={keyword}
@@ -61,22 +64,14 @@ function CategoryPageInner() {
         </select>
       </header>
 
-      {/* 카드 그리드 */}
       <CategoryGrid
         categories={filtered}
         counts={counts}
         onOpen={(cat) => setActiveCat(cat)}
       />
 
-      {/* 새 카테고리 모달 */}
       <NewCategoryModal open={openCreate} onClose={() => setOpenCreate(false)} />
-
-      {/* 카테고리별 일정 모달 */}
-      <CategoryListModal
-        open={!!activeCat}
-        onClose={() => setActiveCat(null)}
-        category={activeCat}
-      />
+      <CategoryListModal open={!!activeCat} onClose={() => setActiveCat(null)} category={activeCat} />
     </div>
   );
 }

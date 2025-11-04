@@ -1,12 +1,13 @@
 import { useMemo, useState } from "react";
 import { useEvents } from "../../../app/store/eventsStore";
-import { CATEGORY_COLORS, getIconColor, getIconChar } from "../../../app/constants/uiTokens";
 import ScheduleDetailModal from "../../schedule/components/ScheduleDetailModal";
+import CategoryBadge from "../../schedule/components/CategoryBadge"; // ✅ 새 배지 import
 
 export default function UpcomingWidget() {
   const { getUpcoming, deleteEvent } = useEvents();
   const [detail, setDetail] = useState(null);
 
+  // 다음 7일
   const items = useMemo(() => getUpcoming(7), [getUpcoming]);
 
   return (
@@ -69,50 +70,30 @@ function UpcomingCard({ ev, onClick }) {
         cursor: "pointer",
       }}
     >
+      {/* 날짜/시간 */}
       <div style={{ minWidth: 70, fontSize: 12, color: "#666" }}>
         <div style={{ fontWeight: 600 }}>{formatDay(ev.day)}</div>
         <div>{ev.timeLabel || "시간 미정"}</div>
       </div>
 
+      {/* 구분선 */}
       <div style={{ width: 1, height: 24, background: "#ddd" }} />
 
+      {/* 아이콘 + 제목/카테고리 */}
       <div style={{ flex: 1 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ color: getIconColor(ev.icon), fontWeight: getIconChar(ev.icon) === "★" ? 700 : 400 }}>
-            {getIconChar(ev.icon)}
+          <span style={{ color: ev.icon === "★" ? "#E3B400" : "#000", fontWeight: ev.icon === "★" ? 700 : 400 }}>
+            {ev.icon}
           </span>
           <strong style={{ fontSize: 14 }}>{ev.title}</strong>
-          {ev.repeat === "monthly" && (
-            <span title="매월 반복" style={{ marginLeft: 6 }}>
-              🔁
-            </span>
-          )}
+          {ev.repeat === "monthly" && <span title="매월 반복" style={{ marginLeft: 6 }}>🔁</span>}
         </div>
         <div style={{ fontSize: 12, color: "#777", marginTop: 2 }}>
+          {/* ✅ 클릭 시 /categories?filter=... 로 이동 */}
           <CategoryBadge name={ev.category} />
         </div>
       </div>
     </button>
-  );
-}
-
-function CategoryBadge({ name }) {
-  const fg = CATEGORY_COLORS[name] || "#495057";
-  const bg = (CATEGORY_COLORS[name] || "#ced4da") + "22";
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        padding: "2px 8px",
-        borderRadius: 999,
-        background: bg,
-        color: fg,
-        fontWeight: 600,
-        fontSize: 11,
-      }}
-    >
-      {name}
-    </span>
   );
 }
 
