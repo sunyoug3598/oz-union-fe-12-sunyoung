@@ -2,6 +2,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router-dom";
 import { router } from "./app/router";
+import "./app/styles/tailwind.css";
 import "./app/styles/globals.css";
 import { EventsProvider } from "./app/store/eventsContext";
 
