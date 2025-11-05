@@ -1,37 +1,56 @@
 import { useMemo, useState } from "react";
 import { useEvents } from "../../../app/store/eventsStore";
 import ScheduleDetailModal from "../../schedule/components/ScheduleDetailModal";
-import CategoryBadge from "../../schedule/components/CategoryBadge"; // ✅ 새 배지 import
+import CategoryBadge from "../../schedule/components/CategoryBadge";
+import { getIconColor } from "../../../app/constants/uiTokens";
 
 export default function UpcomingWidget() {
   const { getUpcoming, deleteEvent } = useEvents();
   const [detail, setDetail] = useState(null);
 
-  // 다음 7일
   const items = useMemo(() => getUpcoming(7), [getUpcoming]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12, height: "100%" }}>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <strong>Upcoming</strong>
-        <span style={{ fontSize: 12, color: "#888" }}>다음 7일</span>
+    <div className="flex h-full flex-col gap-3">
+      <header className="flex items-center justify-between">
+        <strong className="text-[15px]">Upcoming</strong>
+        <span className="text-xs text-gray-500">다음 7일</span>
       </header>
 
-      <div
-        style={{
-          border: "1px solid #eee",
-          borderRadius: 10,
-          padding: 12,
-          height: 240,
-          overflowY: "auto",
-        }}
-      >
+      <div className="h-60 overflow-y-auto rounded-xl border border-gray-200 bg-white p-3">
         {items.length === 0 ? (
-          <div style={{ color: "#888", fontSize: 14 }}>예정된 일정이 없습니다.</div>
+          <div className="px-2 py-3 text-sm text-gray-500">예정된 일정이 없습니다.</div>
         ) : (
-          <div style={{ display: "grid", gap: 10 }}>
+          <div className="grid gap-2.5">
             {items.map((ev) => (
-              <UpcomingCard key={ev.id} ev={ev} onClick={() => setDetail(ev)} />
+              <button
+                key={ev.id}
+                onClick={() => setDetail(ev)}
+                className="w-full cursor-pointer rounded-lg border border-gray-200 bg-white px-3 py-2 text-left hover:bg-gray-50"
+              >
+                {/* 상단: 날짜/카테고리 */}
+                <div className="mb-1 flex items-center justify-between">
+                  <div className="text-xs text-gray-600">{formatDayLabel(ev.day)}</div>
+                  <CategoryBadge name={ev.category} asLink />
+                </div>
+
+                {/* 제목 줄 */}
+                <div className="flex items-center gap-2">
+                  <span
+                    style={{ color: getIconColor(ev.icon) }}
+                    className={ev.icon === "★" ? "font-bold" : ""}
+                  >
+                    {ev.icon}
+                  </span>
+                  <div className="font-semibold">{ev.title}</div>
+                  {ev.repeat === "monthly" && <span className="ml-auto">🔁</span>}
+                </div>
+
+                {/* 보조 정보 */}
+                <div className="mt-1 text-xs text-gray-600">
+                  {ev.timeLabel || "시간 미정"}
+                </div>
+              </button>
             ))}
           </div>
         )}
@@ -53,53 +72,8 @@ export default function UpcomingWidget() {
   );
 }
 
-function UpcomingCard({ ev, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        width: "100%",
-        textAlign: "left",
-        border: "1px solid #e5e5e5",
-        borderRadius: 8,
-        padding: "10px 12px",
-        background: "#fafafa",
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        cursor: "pointer",
-      }}
-    >
-      {/* 날짜/시간 */}
-      <div style={{ minWidth: 70, fontSize: 12, color: "#666" }}>
-        <div style={{ fontWeight: 600 }}>{formatDay(ev.day)}</div>
-        <div>{ev.timeLabel || "시간 미정"}</div>
-      </div>
-
-      {/* 구분선 */}
-      <div style={{ width: 1, height: 24, background: "#ddd" }} />
-
-      {/* 아이콘 + 제목/카테고리 */}
-      <div style={{ flex: 1 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ color: ev.icon === "★" ? "#E3B400" : "#000", fontWeight: ev.icon === "★" ? 700 : 400 }}>
-            {ev.icon}
-          </span>
-          <strong style={{ fontSize: 14 }}>{ev.title}</strong>
-          {ev.repeat === "monthly" && <span title="매월 반복" style={{ marginLeft: 6 }}>🔁</span>}
-        </div>
-        <div style={{ fontSize: 12, color: "#777", marginTop: 2 }}>
-          {/* ✅ 클릭 시 /categories?filter=... 로 이동 */}
-          <CategoryBadge name={ev.category} />
-        </div>
-      </div>
-    </button>
-  );
-}
-
-function formatDay(day) {
-  const now = new Date();
-  const today = Math.min(30, Math.max(1, now.getDate()));
+function formatDayLabel(day) {
+  const today = Math.min(30, Math.max(1, new Date().getDate()));
   if (day === today) return "오늘";
   if (day === today + 1) return "내일";
   return `정해진 날 ${String(day).padStart(2, "0")}`;
