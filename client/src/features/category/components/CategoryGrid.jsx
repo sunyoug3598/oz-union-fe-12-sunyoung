@@ -2,7 +2,6 @@
 import { useCategories } from "../../../app/store/categoryStore";
 
 export default function CategoryGrid({ categories = [], counts = {}, onOpen }) {
-  // 삭제/이름변경은 Provider의 액션 사용
   const { renameCategory, removeCategory } = useCategories();
 
   if (!categories.length) {
@@ -30,6 +29,8 @@ export default function CategoryGrid({ categories = [], counts = {}, onOpen }) {
 }
 
 function CategoryCard({ cat, count, onOpen, onRename, onRemove }) {
+  const { setColor } = useCategories();
+
   const handleRename = (e) => {
     e.stopPropagation();
     const next = window.prompt("카테고리 이름을 수정하세요.", cat.name);
@@ -44,18 +45,28 @@ function CategoryCard({ cat, count, onOpen, onRename, onRemove }) {
     }
   };
 
+  const handleColorChange = (e) => {
+    e.stopPropagation();
+    setColor(cat.id, e.target.value);
+  };
+
   return (
     <button
       onClick={onOpen}
       className="w-full text-left bg-white border border-gray-200 hover:border-gray-300 rounded-xl p-4 transition flex flex-col gap-3"
     >
-      {/* 상단: 이름/카운트/색점 */}
+      {/* 상단: 색/이름/개수 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0">
-          <span
-            className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
-            style={{ backgroundColor: cat.color }}
-            aria-hidden
+          {/* 색상 선택 (버튼 열림 방지 위해 stopPropagation 처리) */}
+          <input
+            type="color"
+            value={cat.color}
+            onClick={(e) => e.stopPropagation()}
+            onChange={handleColorChange}
+            className="w-5 h-5 cursor-pointer border border-gray-300 rounded-full"
+            aria-label={`${cat.name} 색상`}
+            title={`${cat.name} 색상`}
           />
           <span className="font-semibold truncate">{cat.name}</span>
         </div>

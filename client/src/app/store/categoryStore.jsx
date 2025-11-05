@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo, useState, useCallback } from "react";
 import { CATEGORY_COLORS } from "../constants/uiTokens";
 
-// 초기 카테고리
+// 기본 카테고리
 const DEFAULT_CATEGORIES = [
   { id: "cat-personal", name: "개인", color: CATEGORY_COLORS?.개인 ?? "#51cf66" },
   { id: "cat-work",     name: "업무", color: CATEGORY_COLORS?.업무 ?? "#339af0" },
@@ -15,30 +15,41 @@ const CategoryCtx = createContext(null);
 export function CategoryProvider({ children }) {
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
   const [keyword, setKeyword] = useState("");
-  const [viewMode, setViewMode] = useState("cards"); // 'cards' | 'list' (향후)
+  const [viewMode, setViewMode] = useState("cards"); // 'cards' | 'list'(예정)
 
+  // 새 카테고리 추가
   const addCategory = useCallback((name, color) => {
     const trimmed = (name || "").trim();
     if (!trimmed) return;
-    if (categories.some(c => c.name === trimmed)) return; // 중복방지
+    if (categories.some((c) => c.name === trimmed)) return; // 중복 방지
     const id = `cat-${Date.now()}`;
-    setCategories(prev => [...prev, { id, name: trimmed, color }]);
+    setCategories((prev) => [...prev, { id, name: trimmed, color: color || "#888888" }]);
   }, [categories]);
 
+  // 이름 변경
   const renameCategory = useCallback((id, nextName) => {
     const trimmed = (nextName || "").trim();
     if (!trimmed) return;
-    setCategories(prev => prev.map(c => (c.id === id ? { ...c, name: trimmed } : c)));
+    setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, name: trimmed } : c)));
   }, []);
 
+  // ✅ 색상 변경
+  const setColor = useCallback((id, newColor) => {
+    if (!newColor) return;
+    setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, color: newColor } : c)));
+  }, []);
+
+  // 삭제
   const removeCategory = useCallback((id) => {
-    setCategories(prev => prev.filter(c => c.id !== id));
+    setCategories((prev) => prev.filter((c) => c.id !== id));
   }, []);
 
+  // 검색 필터
   const filtered = useMemo(() => {
     const q = keyword.trim();
     if (!q) return categories;
-    return categories.filter(c => c.name.toLowerCase().includes(q.toLowerCase()));
+    const lower = q.toLowerCase();
+    return categories.filter((c) => c.name.toLowerCase().includes(lower));
   }, [categories, keyword]);
 
   const value = {
@@ -46,7 +57,10 @@ export function CategoryProvider({ children }) {
     filtered,
     keyword, setKeyword,
     viewMode, setViewMode,
-    addCategory, renameCategory, removeCategory,
+    addCategory,
+    renameCategory,
+    setColor,          
+    removeCategory,
   };
 
   return <CategoryCtx.Provider value={value}>{children}</CategoryCtx.Provider>;
