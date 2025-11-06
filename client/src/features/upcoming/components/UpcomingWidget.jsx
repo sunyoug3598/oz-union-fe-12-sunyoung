@@ -6,16 +6,23 @@ import ScheduleDetailModal from "../../schedule/components/ScheduleDetailModal";
 
 export default function UpcomingWidget() {
   const { getUpcoming, deleteEvent } = useEvents();
-  const range = useSettings((s) => s.upcomingRangeDays); // ✅ 설정 적용
+  const range = useSettings((s) => s.upcomingRangeDays);
+  const showCompleted = useSettings((s) => s.showCompleted);
   const [detail, setDetail] = useState(null);
 
-  const items = useMemo(() => getUpcoming(range), [getUpcoming, range]);
+  const items = useMemo(() => {
+    const raw = getUpcoming(range);
+    // ✅ 완료(✕) 숨김 옵션 반영
+    return showCompleted ? raw : raw.filter((ev) => ev.icon !== "✕");
+  }, [getUpcoming, range, showCompleted]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, height: "100%" }}>
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <strong>Upcoming</strong>
-        <span style={{ fontSize: 12, color: "#888" }}>다음 {range}일</span>
+        <span style={{ fontSize: 12, color: "#888" }}>
+          다음 {range}일{showCompleted ? "" : " · 완료 숨김"}
+        </span>
       </header>
 
       <div
@@ -28,7 +35,9 @@ export default function UpcomingWidget() {
         }}
       >
         {items.length === 0 ? (
-          <div style={{ color: "#888", fontSize: 14 }}>예정된 일정이 없습니다.</div>
+          <div style={{ color: "#888", fontSize: 14 }}>
+            {showCompleted ? "예정된 일정이 없습니다." : "표시할 예정된 일정이 없습니다.(완료 숨김 중)"}
+          </div>
         ) : (
           <div style={{ display: "grid", gap: 10 }}>
             {items.map((ev) => (
@@ -71,13 +80,16 @@ function UpcomingCard({ ev, onClick }) {
         cursor: "pointer",
       }}
     >
+      {/* 날짜/시간 */}
       <div style={{ minWidth: 70, fontSize: 12, color: "#666" }}>
         <div style={{ fontWeight: 600 }}>{formatDay(ev.day)}</div>
         <div>{ev.timeLabel || "시간 미정"}</div>
       </div>
 
+      {/* 구분선 */}
       <div style={{ width: 1, height: 24, background: "#ddd" }} />
 
+      {/* 아이콘 + 제목/카테고리 */}
       <div style={{ flex: 1 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ color: getIconColor(ev.icon), fontWeight: ev.icon === "★" ? 700 : 400 }}>
