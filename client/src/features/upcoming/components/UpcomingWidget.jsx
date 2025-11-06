@@ -1,28 +1,21 @@
-// src/features/upcoming/components/UpcomingWidget.jsx
 import { useMemo, useState } from "react";
-import ScheduleDetailModal from "../../schedule/components/ScheduleDetailModal";
-import ScheduleCreateModal from "../../schedule/components/ScheduleCreateModal";
-import CategoryBadge from "../../schedule/components/CategoryBadge"; // ✅ 공용 배지
 import { useEvents } from "../../../app/store/eventsStore";
+import { useSettings } from "../../../app/store/settingsStore";
+import { CATEGORY_COLORS, getIconColor } from "../../../app/constants/uiTokens";
+import ScheduleDetailModal from "../../schedule/components/ScheduleDetailModal";
 
 export default function UpcomingWidget() {
-  const events = useEvents((s) => s.events);
-  const getUpcoming = useEvents((s) => s.getUpcoming);
-  const deleteEvent = useEvents((s) => s.deleteEvent);
-  const editEvent = useEvents((s) => s.editEvent);
-
+  const { getUpcoming, deleteEvent } = useEvents();
+  const range = useSettings((s) => s.upcomingRangeDays); // ✅ 설정 적용
   const [detail, setDetail] = useState(null);
-  const [editOpen, setEditOpen] = useState(false);
-  const [editInitial, setEditInitial] = useState(null);
 
-  // 다음 7일
-  const items = useMemo(() => getUpcoming(7), [getUpcoming, events]);
+  const items = useMemo(() => getUpcoming(range), [getUpcoming, range]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, height: "100%" }}>
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <strong>Upcoming</strong>
-        <span style={{ fontSize: 12, color: "#888" }}>다음 7일</span>
+        <span style={{ fontSize: 12, color: "#888" }}>다음 {range}일</span>
       </header>
 
       <div
@@ -45,42 +38,16 @@ export default function UpcomingWidget() {
         )}
       </div>
 
-      {/* 상세 모달 */}
       <ScheduleDetailModal
         open={!!detail}
         event={detail}
         onClose={() => setDetail(null)}
-        onEdit={(ev) => {
-          setDetail(null);
-          setEditInitial(ev);
-          setEditOpen(true);
+        onEdit={() => {
+          alert("편집은 캘린더에서 먼저 연결하자! (다음 단계)");
         }}
         onDelete={(ev) => {
           deleteEvent(ev.day, ev.id);
           setDetail(null);
-        }}
-      />
-
-      {/* 편집 모달 (생성 모달 재사용) */}
-      <ScheduleCreateModal
-        open={editOpen}
-        onClose={() => {
-          setEditOpen(false);
-          setEditInitial(null);
-        }}
-        initialEvent={editInitial}
-        defaultDay={editInitial?.day ?? null}
-        onSubmit={(data, toDay) => {
-          editEvent(data.fromDay, toDay, {
-            id: data.id,
-            icon: data.icon,
-            title: data.title,
-            timeLabel: data.timeLabel,
-            category: data.category,
-            repeat: data.repeat,
-          });
-          setEditOpen(false);
-          setEditInitial(null);
         }}
       />
     </div>
@@ -104,39 +71,44 @@ function UpcomingCard({ ev, onClick }) {
         cursor: "pointer",
       }}
     >
-      {/* 날짜/시간 */}
       <div style={{ minWidth: 70, fontSize: 12, color: "#666" }}>
         <div style={{ fontWeight: 600 }}>{formatDay(ev.day)}</div>
         <div>{ev.timeLabel || "시간 미정"}</div>
       </div>
 
-      {/* 구분선 */}
       <div style={{ width: 1, height: 24, background: "#ddd" }} />
 
-      {/* 아이콘 + 제목/카테고리 */}
       <div style={{ flex: 1 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span
-            style={{
-              color: ev.icon === "★" ? "#E3B400" : "#000",
-              fontWeight: ev.icon === "★" ? 700 : 400,
-            }}
-          >
+          <span style={{ color: getIconColor(ev.icon), fontWeight: ev.icon === "★" ? 700 : 400 }}>
             {ev.icon}
           </span>
           <strong style={{ fontSize: 14 }}>{ev.title}</strong>
-          {ev.repeat === "monthly" && (
-            <span title="매월 반복" style={{ marginLeft: 6 }}>
-              🔁
-            </span>
-          )}
+          {ev.repeat === "monthly" && <span title="매월 반복" style={{ marginLeft: 6 }}>🔁</span>}
         </div>
         <div style={{ fontSize: 12, color: "#777", marginTop: 2 }}>
-          {/* ✅ 공용 배지: 클릭 시 /categories?cat=... 이동 */}
           <CategoryBadge name={ev.category} />
         </div>
       </div>
     </button>
+  );
+}
+
+function CategoryBadge({ name }) {
+  const color = CATEGORY_COLORS[name] || "#868e96";
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        padding: "2px 8px",
+        borderRadius: 999,
+        background: `${color}22`,
+        color,
+        fontWeight: 600,
+      }}
+    >
+      {name}
+    </span>
   );
 }
 
