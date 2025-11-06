@@ -7,6 +7,7 @@ import MyPage from "../features/mypage/pages/MyPage";
 import LoginPage from "../features/auth/pages/LoginPage";
 import SignUpPage from "../features/auth/pages/SignUpPage";
 import NotFound from "../shared/components/NotFound";
+import ProtectedRoute from "../shared/components/ProtectedRoute";
 
 export const router = createBrowserRouter([
   {
@@ -17,10 +18,17 @@ export const router = createBrowserRouter([
       { index: true, element: <CalendarPage /> },
       { path: "notes", element: <NotesPage /> },
       { path: "categories", element: <CategoryPage /> },
-      { path: "mypage", element: <MyPage /> },
+      {
+        path: "mypage",
+        element: (
+          <ProtectedRoute>
+            <MyPage />
+          </ProtectedRoute>
+        ),
+      },
     ],
   },
-  { path: "/login", element: <LoginPage /> },
-  { path: "/signup", element: <SignUpPage /> },
+  { path: "/login", element: <LoginPage /> },   // (남겨둠: 필요시 사용)
+  { path: "/signup", element: <SignUpPage /> }, // (남겨둠)
   { path: "*", element: <NotFound /> },
 ]);
