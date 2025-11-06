@@ -3,81 +3,38 @@ import Modal from "../../../shared/components/Modal";
 import DayScheduleList from "./DayScheduleList";
 import ScheduleDetailModal from "./ScheduleDetailModal";
 import { useEvents } from "../../../app/store/eventsStore";
-import { getIconColor } from "../../../app/constants/uiTokens";
+import { getIconChar, getIconColor } from "../../../app/constants/uiTokens";
 
 export default function CalendarMonth() {
-  const { events, addEvent, editEvent, deleteEvent } = useEvents();
-
+  const { events } = useEvents();              // ✅ 전역 스토어 사용
   const [month] = useState("2025년 11월");
   const [openDay, setOpenDay] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
 
-  // ✅ 이벤트로부터 카테고리 자동 수집 (컨텍스트 의존 X)
-  const allCatNames = useMemo(() => {
-    const set = new Set();
-    Object.values(events || {}).forEach((arr) => {
-      (arr || []).forEach((ev) => ev?.category && set.add(ev.category));
-    });
-    return Array.from(set); // ["개인","업무",...]
-  }, [events]);
-
-  // ✅ 로컬 필터 상태 (빈 집합 = 전체보기)
-  const [selectedCats, setSelectedCats] = useState(new Set());
-
-  // 30일 달(데모)
   const days = Array.from({ length: 30 }, (_, i) => i + 1);
 
-  const getDayItems = (day) => {
-    const list = events[day] || [];
-    if (selectedCats.size === 0) return list;
-    return list.filter((e) => selectedCats.has(e.category));
-  };
-
+  // 모달용 당일 아이템
   const dayItems = useMemo(() => {
     if (!openDay) return [];
-    return (getDayItems(openDay) || []).map((e) => ({
-      ...e,
+    return (events[openDay] || []).map((e) => ({
+      id: e.id,
       day: openDay,
-      statusIcon: e.icon,
+      title: e.title,
+      timeLabel: e.timeLabel,
+      category: e.category,
       repeat: e.repeat || null,
+      statusIcon: getIconChar(e.icon), // ✅ 표준화
     }));
-  }, [openDay, events, selectedCats]);
+  }, [openDay, events]);
 
-  const handleDelete = (ev) => {
-    const dayNum = ev.day ?? openDay;
-    if (!dayNum) return;
-    deleteEvent(dayNum, ev.id);
-    setSelectedEvent(null);
-  };
-
-  const handleEdit = (fromDay, toDay, updated) => {
-    editEvent(fromDay, toDay, updated);
-    setSelectedEvent(null);
-    setOpenDay(toDay);
-  };
+  const handleClickDay = (day) => setOpenDay(day);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
       <TopBar month={month} onPrev={() => {}} onNext={() => {}} />
-
-      {/* ✅ 카테고리 필터 바 (로컬) */}
-      <CategoryFilterBar
-        all={allCatNames}
-        selected={selectedCats}
-        onToggle={(name) => {
-          setSelectedCats((prev) => {
-            const next = new Set(prev);
-            if (next.has(name)) next.delete(name);
-            else next.add(name);
-            return next;
-          });
-        }}
-        onClear={() => setSelectedCats(new Set())}
-      />
 
       <WeekHeader />
 
-      {/* 날짜 그리드 */}
       <div
         style={{
           display: "grid",
@@ -87,11 +44,11 @@ export default function CalendarMonth() {
         }}
       >
         {days.map((day) => {
-          const list = getDayItems(day);
+          const list = events[day] || []; // ✅ 스토어에서 그 날 일정
           return (
             <div
               key={day}
-              onClick={() => setOpenDay(day)}
+              onClick={() => handleClickDay(day)}
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f0f0f0")}
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#fafafa")}
               style={{
@@ -109,41 +66,43 @@ export default function CalendarMonth() {
             >
               <strong style={{ fontSize: "12px", color: "#222" }}>{day}</strong>
 
-              {/* 칸 안 미리보기 최대 2개 (필터 적용) */}
-              {list.slice(0, 2).map((event) => (
-                <div
-                  key={event.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px",
-                    marginTop: "4px",
-                    fontSize: "12px",
-                    lineHeight: 1.3,
-                    color: "#333",
-                    width: "100%",
-                  }}
-                >
-                  <span
+              {list.slice(0, 2).map((event) => {
+                const ch = getIconChar(event.icon);
+                return (
+                  <div
+                    key={event.id}
                     style={{
-                      color: getIconColor(event.icon),
-                      fontWeight: event.icon === "★" ? 700 : 400,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      marginTop: "4px",
+                      fontSize: "12px",
+                      lineHeight: 1.3,
+                      color: "#333",
+                      width: "100%",
                     }}
                   >
-                    {event.icon}
-                  </span>
-                  <span
-                    style={{
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      maxWidth: "100%",
-                    }}
-                  >
-                    {event.title}
-                  </span>
-                </div>
-              ))}
+                    <span
+                      style={{
+                        color: getIconColor(ch),
+                        fontWeight: ch === "★" ? 700 : 400,
+                      }}
+                    >
+                      {ch}
+                    </span>
+                    <span
+                      style={{
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        maxWidth: "100%",
+                      }}
+                    >
+                      {event.title}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           );
         })}
@@ -155,22 +114,41 @@ export default function CalendarMonth() {
         onClose={() => setOpenDay(null)}
         title={`${month} ${openDay ?? ""}일 일정`}
         footer={
-          <button
-            onClick={() => setOpenDay(null)}
-            style={{
-              border: "1px solid #ccc",
-              background: "#fff",
-              borderRadius: 6,
-              padding: "6px 10px",
-              cursor: "pointer",
-            }}
-          >
-            닫기 (Esc)
-          </button>
+          <>
+            <button
+              onClick={() => setOpenDay(null)}
+              style={{
+                border: "1px solid #ccc",
+                background: "#fff",
+                borderRadius: 6,
+                padding: "6px 10px",
+                cursor: "pointer",
+              }}
+            >
+              닫기 (Esc)
+            </button>
+            <button
+              onClick={() => {
+                window.dispatchEvent(
+                  new CustomEvent("open-new-schedule", { detail: { day: openDay } })
+                );
+              }}
+              style={{
+                border: "none",
+                background: "#000",
+                color: "#fff",
+                borderRadius: 6,
+                padding: "6px 12px",
+                cursor: "pointer",
+                fontWeight: 700,
+              }}
+            >
+              + 새 일정
+            </button>
+          </>
         }
       >
         <DayScheduleList
-          dateLabel={`${month} ${openDay ?? ""}일`}
           items={dayItems}
           onClickItem={(ev) => {
             setOpenDay(null);
@@ -179,24 +157,18 @@ export default function CalendarMonth() {
         />
       </Modal>
 
-      {/* 상세 모달 */}
+      {/* 일정 상세 모달 */}
       <ScheduleDetailModal
         open={!!selectedEvent}
         onClose={() => setSelectedEvent(null)}
         event={selectedEvent}
-        onEdit={(ev) => {
-          const next = { ...ev }; // 편집 UI는 다음 단계
-          handleEdit(ev.day, ev.day, next);
-        }}
-        onDelete={handleDelete}
       />
     </div>
   );
 }
 
-/* 상단 바 */
 function TopBar({ month, onPrev, onNext }) {
-  const btn = {
+  const navBtnStyle = {
     background: "none",
     border: "1px solid #ccc",
     borderRadius: "4px",
@@ -208,6 +180,29 @@ function TopBar({ month, onPrev, onNext }) {
     textAlign: "center",
     color: "#555",
   };
+  const filterBtnStyle = {
+    border: "1px solid #ccc",
+    borderRadius: "4px",
+    padding: "4px 8px",
+    backgroundColor: "#fff",
+    fontSize: "12px",
+    cursor: "pointer",
+  };
+  const addBtnStyle = {
+    border: "none",
+    borderRadius: "4px",
+    padding: "6px 12px",
+    backgroundColor: "#000",
+    color: "#fff",
+    fontSize: "12px",
+    cursor: "pointer",
+    fontWeight: 700,
+  };
+
+  const openNewSchedule = (day = null) => {
+    window.dispatchEvent(new CustomEvent("open-new-schedule", { detail: { day } }));
+  };
+
   return (
     <div
       style={{
@@ -216,19 +211,24 @@ function TopBar({ month, onPrev, onNext }) {
         alignItems: "center",
         borderBottom: "1px solid #eee",
         paddingBottom: "8px",
+        marginBottom: "8px",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-        <button onClick={onPrev} style={btn}>‹</button>
+        <button onClick={onPrev} style={navBtnStyle}>‹</button>
         <h2 style={{ fontSize: "18px", margin: 0 }}>{month}</h2>
-        <button onClick={onNext} style={btn}>›</button>
+        <button onClick={onNext} style={navBtnStyle}>›</button>
       </div>
-      <div />
+      <div style={{ display: "flex", gap: "8px" }}>
+        <button style={filterBtnStyle}>필터</button>
+        <button style={addBtnStyle} onClick={() => openNewSchedule(null)}>
+          + 새 일정
+        </button>
+      </div>
     </div>
   );
 }
 
-/* 요일 헤더 */
 function WeekHeader() {
   return (
     <div
@@ -239,75 +239,12 @@ function WeekHeader() {
         fontWeight: 600,
         fontSize: "13px",
         color: "#666",
+        marginBottom: "4px",
       }}
     >
       {["일", "월", "화", "수", "목", "금", "토"].map((d) => (
         <div key={d} style={{ padding: "6px 0" }}>{d}</div>
       ))}
-    </div>
-  );
-}
-
-/* 카테고리 필터 바 (로컬) */
-function CategoryFilterBar({ all = [], selected, onToggle, onClear }) {
-  if (!all.length) return null;
-  return (
-    <div
-      style={{
-        display: "flex",
-        flexWrap: "wrap",
-        gap: 8,
-        alignItems: "center",
-        border: "1px solid #eee",
-        borderRadius: 8,
-        padding: "8px 10px",
-        background: "#fafafa",
-      }}
-    >
-      <span style={{ fontSize: 12, color: "#666", marginRight: 4 }}>카테고리:</span>
-      {all.map((name) => {
-        const active = selected.has(name);
-        return (
-          <label
-            key={name}
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              border: active ? "1px solid #333" : "1px solid #ddd",
-              background: "#fff",
-              color: "#222",
-              borderRadius: 999,
-              padding: "4px 10px",
-              cursor: "pointer",
-              userSelect: "none",
-              fontSize: 12,
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={active}
-              onChange={() => onToggle(name)}
-            />
-            {name}
-          </label>
-        );
-      })}
-      <button
-        onClick={onClear}
-        style={{
-          marginLeft: "auto",
-          border: "1px solid #ddd",
-          background: "#fff",
-          borderRadius: 999,
-          padding: "4px 10px",
-          fontSize: 12,
-          cursor: "pointer",
-        }}
-      >
-        전체보기
-      </button>
     </div>
   );
 }

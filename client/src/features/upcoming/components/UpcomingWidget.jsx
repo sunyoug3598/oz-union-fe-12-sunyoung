@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { useEvents } from "../../../app/store/eventsStore";
 import { useSettings } from "../../../app/store/settingsStore";
-import { CATEGORY_COLORS, getIconColor } from "../../../app/constants/uiTokens";
+import { getIconColor, getIconChar } from "../../../app/constants/uiTokens";
 import ScheduleDetailModal from "../../schedule/components/ScheduleDetailModal";
+import CategoryBadge from "../../schedule/components/CategoryBadge";
 
 export default function UpcomingWidget() {
   const { getUpcoming, deleteEvent } = useEvents();
@@ -12,8 +13,9 @@ export default function UpcomingWidget() {
 
   const items = useMemo(() => {
     const raw = getUpcoming(range);
-    // ✅ 완료(✕) 숨김 옵션 반영
-    return showCompleted ? raw : raw.filter((ev) => ev.icon !== "✕");
+    const list = showCompleted ? raw : raw.filter((ev) => getIconChar(ev.icon) !== "✕");
+    // 날짜 정렬 보장
+    return list.slice().sort((a, b) => a.day - b.day);
   }, [getUpcoming, range, showCompleted]);
 
   return (
@@ -51,9 +53,7 @@ export default function UpcomingWidget() {
         open={!!detail}
         event={detail}
         onClose={() => setDetail(null)}
-        onEdit={() => {
-          alert("편집은 캘린더에서 먼저 연결하자! (다음 단계)");
-        }}
+        onEdit={() => alert("편집은 캘린더에서 먼저 연결하자! (다음 단계)")}
         onDelete={(ev) => {
           deleteEvent(ev.day, ev.id);
           setDetail(null);
@@ -64,6 +64,8 @@ export default function UpcomingWidget() {
 }
 
 function UpcomingCard({ ev, onClick }) {
+  const ch = getIconChar(ev.icon);
+
   return (
     <button
       onClick={onClick}
@@ -92,8 +94,13 @@ function UpcomingCard({ ev, onClick }) {
       {/* 아이콘 + 제목/카테고리 */}
       <div style={{ flex: 1 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ color: getIconColor(ev.icon), fontWeight: ev.icon === "★" ? 700 : 400 }}>
-            {ev.icon}
+          <span
+            style={{
+              color: getIconColor(ch),
+              fontWeight: ch === "★" ? 700 : 400,
+            }}
+          >
+            {ch}
           </span>
           <strong style={{ fontSize: 14 }}>{ev.title}</strong>
           {ev.repeat === "monthly" && <span title="매월 반복" style={{ marginLeft: 6 }}>🔁</span>}
@@ -103,24 +110,6 @@ function UpcomingCard({ ev, onClick }) {
         </div>
       </div>
     </button>
-  );
-}
-
-function CategoryBadge({ name }) {
-  const color = CATEGORY_COLORS[name] || "#868e96";
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        padding: "2px 8px",
-        borderRadius: 999,
-        background: `${color}22`,
-        color,
-        fontWeight: 600,
-      }}
-    >
-      {name}
-    </span>
   );
 }
 

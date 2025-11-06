@@ -1,4 +1,3 @@
-// src/app/layout/AppLayout.jsx
 import { Outlet } from "react-router-dom";
 import Header from "../../shared/components/Header";
 import Footer from "../../shared/components/Footer";
@@ -6,6 +5,7 @@ import MemoWidget from "../../features/memoWidget/components/MemoWidget";
 import CategoryWidget from "../../features/categoryWidget/components/CategoryWidget";
 import UpcomingWidget from "../../features/upcoming/components/UpcomingWidget";
 import RoutineWidget from "../../features/routine/components/RoutineWidget";
+import NewScheduleController from "../../features/schedule/components/NewScheduleController";
 
 export default function AppLayout() {
   return (
@@ -33,7 +33,7 @@ export default function AppLayout() {
           alignItems: "start",
         }}
       >
-        {/* 왼쪽 사이드 */}
+        {/* 왼쪽 사이드바 */}
         <aside style={{ display: "grid", gap: "12px" }}>
           <CardWrapper>
             <MemoWidget />
@@ -43,7 +43,7 @@ export default function AppLayout() {
           </CardWrapper>
         </aside>
 
-        {/* 가운데 메인 */}
+        {/* 메인 컨텐츠 */}
         <section
           style={{
             backgroundColor: "#fff",
@@ -62,7 +62,7 @@ export default function AppLayout() {
           <Outlet />
         </section>
 
-        {/* 오른쪽 사이드 */}
+        {/* 오른쪽 사이드바 */}
         <aside style={{ display: "grid", gap: "12px" }}>
           <CardWrapper>
             <UpcomingWidget />
@@ -74,6 +74,9 @@ export default function AppLayout() {
       </main>
 
       <Footer />
+
+      {/* ✅ 전역 '새 일정' 모달 컨트롤러 */}
+      <NewScheduleController />
     </div>
   );
 }

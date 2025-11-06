@@ -5,10 +5,9 @@ export default function Header() {
   const nav = useNavigate();
   const { pathname } = useLocation();
 
-  // TODO: 실제 인증 연동 시 교체
+  // TODO: auth 연결되면 실제 로그인 여부로 변경
   const isLoggedIn = false;
 
-  // TODO: 마이페이지 설정 기반 로드 예정
   const quotes = [
     "기록은 기억을 이깁니다.",
     "조금 늦어도 괜찮아요. 꾸준하면 돼요.",
@@ -17,10 +16,8 @@ export default function Header() {
   ];
   const [quoteIndex, setQuoteIndex] = useState(0);
 
-  const prevQuote = () =>
-    setQuoteIndex((i) => (i - 1 + quotes.length) % quotes.length);
+  const prevQuote = () => setQuoteIndex((i) => (i - 1 + quotes.length) % quotes.length);
   const nextQuote = () => setQuoteIndex((i) => (i + 1) % quotes.length);
-
   const goHome = () => nav("/");
 
   return (
@@ -45,6 +42,7 @@ export default function Header() {
       >
         {/* 로고 */}
         <div
+          onClick={goHome}
           style={{
             justifySelf: "start",
             fontWeight: 600,
@@ -53,12 +51,11 @@ export default function Header() {
             cursor: "pointer",
             whiteSpace: "nowrap",
           }}
-          onClick={goHome}
         >
           oz-union-fe-12-sunyoung
         </div>
 
-        {/* 오늘의 문구 */}
+        {/* 가운데: 오늘의 문구 */}
         <div
           style={{
             justifySelf: "center",
@@ -88,6 +85,7 @@ export default function Header() {
             {quotes[quoteIndex]}
           </div>
 
+          {/* 우하단 카운터 + 좌우 화살표 */}
           <div
             style={{
               position: "absolute",
@@ -109,7 +107,7 @@ export default function Header() {
           </div>
         </div>
 
-        {/* 네비게이션 */}
+        {/* 오른쪽 네비 */}
         <nav
           style={{
             justifySelf: "end",
@@ -128,10 +126,7 @@ export default function Header() {
           <span style={{ color: "#aaa" }}>|</span>
 
           {isLoggedIn ? (
-            <Link
-              to="/mypage"
-              style={{ textDecoration: "none", fontWeight: 600, color: "#222" }}
-            >
+            <Link to="/mypage" style={{ textDecoration: "none", fontWeight: 600, color: "#222" }}>
               마이페이지
             </Link>
           ) : (

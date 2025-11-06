@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 
 export default function CategoryBadge({
   name,
-  to = `/categories?cat=${encodeURIComponent(name || "")}`,
-  stopPropagation = true, // ✅ 기본적으로 버블링 막기
+  to,                 // 외부에서 주면 우선
+  stopPropagation = true,
 }) {
   const nav = useNavigate();
 
@@ -16,15 +16,16 @@ export default function CategoryBadge({
     기타: "#868e96",
   };
 
-  const bg = ((palette[name] || "#ced4da") + "22");
-  const fg = (palette[name] || "#495057");
+  const fg = palette[name] || "#495057";
+  const bg = (palette[name] || "#ced4da") + "22";
+  const href = to ?? `/categories?filter=${encodeURIComponent(name || "")}`;
 
   return (
     <span
       role="link"
       onClick={(e) => {
-        if (stopPropagation) e.stopPropagation(); // ✅ 부모 버튼으로 이벤트 안 올라가게
-        nav(to);
+        if (stopPropagation) e.stopPropagation();
+        nav(href);
       }}
       title={`${name} 카테고리 보기`}
       style={{
