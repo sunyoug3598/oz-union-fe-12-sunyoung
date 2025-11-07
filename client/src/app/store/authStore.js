@@ -1,103 +1,79 @@
+// src/app/store/authStore.js
 import { create } from "zustand";
 
-const LS_USERS = "solan.auth.users.v1";
-const LS_USER  = "solan.auth.user.v1";
-const LS_LOCK  = "solan.auth.lock.v1"; // { email: { count, until } }
+const LS_AUTH = "solan.auth.v1";
+const LS_USERS = "solan.users.v1";
 
-const load = (k, fallback) => {
-  try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; }
-  catch { return fallback; }
+// 유틸: 저장/불러오기
+const load = (key, fallback) => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
 };
-const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+const save = (key, val) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(val));
+  } catch {}
+};
 
-// 규칙: 닉네임(2~12자, 한글/영문/숫자), 비번(8~20자, 소문자+숫자 필수)
-const NICK_RE = /^[A-Za-z0-9가-힣]{2,12}$/;
-const PW_RE   = /^(?=.*[a-z])(?=.*\d)[A-Za-z\d!@#$%^&*()_\-+=]{8,20}$/;
+// 초기 사용자 목록(데모용)
+const initialUsers = load(LS_USERS, [
+  // { email: "test@example.com", nickname: "떠니", password: "12345678" }
+]);
+
+// 초기 로그인 상태
+const initialAuth = load(LS_AUTH, {
+  isLoggedIn: false,
+  rememberMe: false,
+  user: null, // { email, nickname }
+});
 
 export const useAuth = create((set, get) => ({
-  users: load(LS_USERS, []),  // [{id,email,nickname,passwordHash}]
-  user : load(LS_USER, null), // 로그인된 사용자
-  locks: load(LS_LOCK, {}),   // { [email]: { count, until: epochMS } }
+  isLoggedIn: initialAuth.isLoggedIn,
+  rememberMe: initialAuth.rememberMe,
+  user: initialAuth.user,
+  users: initialUsers,
 
-  // 해시 대용(데모): 실제 서비스는 절대 이렇게 하지 말 것
-  _hash(pw) { return `#${pw}#`; },
+  // 회원가입
+  signup: ({ email, nickname, password }) => {
+    const users = get().users;
+    const exists = users.some((u) => u.email.toLowerCase() === email.toLowerCase());
+    if (exists) throw new Error("이미 가입된 이메일입니다.");
 
-  validateNickname(nick) { return NICK_RE.test((nick||"").trim()); },
-  validatePassword(pw)   { return PW_RE.test((pw||"").trim()); },
-
-  signup({ email, password, nickname }) {
-    email = (email||"").trim().toLowerCase();
-    nickname = (nickname||"").trim();
-
-    if (!email || !password || !nickname) throw new Error("모든 필드를 입력해주세요.");
-    if (!get().validateNickname(nickname)) throw new Error("닉네임 규칙을 확인해주세요. (2~12자, 한글/영문/숫자)");
-    if (!get().validatePassword(password)) throw new Error("비밀번호 규칙을 확인해주세요. (8~20자, 소문자+숫자 필수)");
-
-    const users = [...get().users];
-    if (users.some(u => u.email === email)) throw new Error("이미 가입된 이메일입니다.");
-    if (users.some(u => u.nickname === nickname)) throw new Error("이미 사용 중인 닉네임입니다.");
-
-    const newUser = {
-      id: `u_${Date.now()}`,
-      email,
-      nickname,
-      passwordHash: get()._hash(password),
-      createdAt: Date.now(),
-    };
-    users.push(newUser);
-    save(LS_USERS, users);
-    set({ users });
-
-    // 가입 후 자동 로그인
-    const user = { id: newUser.id, email, nickname };
-    save(LS_USER, user);
-    set({ user });
-
-    return user;
+    const nextUsers = [...users, { email, nickname, password }]; // 데모이므로 평문저장
+    set({ users: nextUsers });
+    save(LS_USERS, nextUsers);
   },
 
-  login({ email, password, remember = true }) {
-    email = (email||"").trim().toLowerCase();
-    const { users, _hash } = get();
-
-    // 잠금 로직(5회 실패 시 5분 잠금)
-    const locks = { ...get().locks };
-    const now = Date.now();
-    const info = locks[email];
-    if (info && info.until && now < info.until) {
-      const left = Math.ceil((info.until - now) / 1000);
-      throw new Error(`로그인 제한 중입니다. ${left}초 후 다시 시도하세요.`);
-    }
-
-    const found = users.find(u => u.email === email);
-    if (!found || found.passwordHash !== _hash(password)) {
-      const cur = locks[email] || { count: 0, until: 0 };
-      cur.count += 1;
-      if (cur.count >= 5) {
-        cur.until = now + 5 * 60 * 1000; // 5분
-        cur.count = 0;
-      }
-      locks[email] = cur;
-      save(LS_LOCK, locks);
-      set({ locks });
+  // 로그인
+  login: ({ email, password, rememberMe }) => {
+    const users = get().users;
+    const found = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+    if (!found || found.password !== password) {
       throw new Error("이메일 또는 비밀번호가 올바르지 않습니다.");
     }
-
-    // 성공: 잠금 초기화
-    if (locks[email]) {
-      delete locks[email];
-      save(LS_LOCK, locks);
-      set({ locks });
-    }
-
-    const user = { id: found.id, email: found.email, nickname: found.nickname };
-    if (remember) save(LS_USER, user);
-    set({ user });
-    return user;
+    const user = { email: found.email, nickname: found.nickname };
+    const payload = { isLoggedIn: true, rememberMe: !!rememberMe, user };
+    set(payload);
+    if (rememberMe) save(LS_AUTH, payload);
+    else save(LS_AUTH, { isLoggedIn: false, rememberMe: false, user: null });
   },
 
-  logout() {
-    save(LS_USER, null);
-    set({ user: null });
+  // 자동로그인 유지: 앱 로드시 호출해도 됨(이미 초기값 로드 완료 상태)
+  restore: () => {
+    const st = load(LS_AUTH, initialAuth);
+    if (st?.rememberMe && st?.isLoggedIn && st?.user) {
+      set(st);
+    }
+  },
+
+  // 로그아웃
+  logout: () => {
+    set({ isLoggedIn: false, user: null });
+    // 자동로그인 해제
+    save(LS_AUTH, { isLoggedIn: false, rememberMe: false, user: null });
   },
 }));

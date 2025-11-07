@@ -1,4 +1,6 @@
 import { useSettings } from "../../../app/store/settingsStore";
+import { useQuotes } from "../../../app/store/quotesStore";
+import { useState } from "react";
 
 export default function MyPage() {
   const {
@@ -82,7 +84,78 @@ export default function MyPage() {
           </button>
         </div>
       </Section>
+
+      {/* ✅ 추가: 헤더 ‘오늘의 문구’ 관리 */}
+      <QuoteManager />
     </div>
+  );
+}
+
+function QuoteManager() {
+  const quotes = useQuotes((s) => s.quotes);
+  const mode = useQuotes((s) => s.mode);
+  const addQuote = useQuotes((s) => s.addQuote);
+  const updateQuote = useQuotes((s) => s.updateQuote);
+  const removeQuote = useQuotes((s) => s.removeQuote);
+  const moveQuote = useQuotes((s) => s.moveQuote);
+  const setMode = useQuotes((s) => s.setMode);
+
+  const [draft, setDraft] = useState("");
+
+  return (
+    <Section title="헤더 ‘오늘의 문구’ 관리">
+      <Row label="표시 방식">
+        <select value={mode} onChange={(e) => setMode(e.target.value)} style={input}>
+          <option value="sequential">순차</option>
+          <option value="random">랜덤</option>
+        </select>
+      </Row>
+
+      <div style={{ display: "flex", gap: 8 }}>
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="새 문구 입력"
+          style={{ ...input, flex: 1 }}
+        />
+        <button
+          onClick={() => {
+            if (draft.trim()) {
+              addQuote(draft.trim());
+              setDraft("");
+            }
+          }}
+          style={btnSolid}
+        >
+          추가
+        </button>
+      </div>
+
+      <div style={{ display: "grid", gap: 8 }}>
+        {quotes.map((q, i) => (
+          <div key={i} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span style={{ width: 20, color: "#666" }}>{i + 1}.</span>
+            <input
+              value={q}
+              onChange={(e) => updateQuote(i, e.target.value)}
+              style={{ ...input, flex: 1 }}
+            />
+            <button disabled={i === 0} onClick={() => moveQuote(i, i - 1)} style={btnOutline}>↑</button>
+            <button
+              disabled={i === quotes.length - 1}
+              onClick={() => moveQuote(i, i + 1)}
+              style={btnOutline}
+            >
+              ↓
+            </button>
+            <button onClick={() => removeQuote(i)} style={{ ...btnOutline, borderColor: "#f03e3e", color: "#f03e3e" }}>
+              삭제
+            </button>
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize: 12, color: "#777" }}>* 모든 변경은 자동 저장됩니다.</div>
+    </Section>
   );
 }
 
