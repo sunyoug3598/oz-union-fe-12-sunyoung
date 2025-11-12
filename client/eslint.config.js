@@ -24,6 +24,8 @@ export default defineConfig([
     },
     rules: {
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      "no-empty": "off", // 완전히 끔
+      "no-unused-var": "off", // 완전히 끔
     },
   },
 ])

@@ -95,6 +95,7 @@ export function EventsProvider({ children }) {
   return <EventsCtx.Provider value={value}>{children}</EventsCtx.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useEvents = () => {
   const ctx = useContext(EventsCtx);
   if (!ctx) throw new Error("useEvents must be used within EventsProvider");

@@ -36,7 +36,9 @@ export default function CalendarMonth() {
     try {
       const raw = localStorage.getItem(CAT_LS_KEY);
       stored = raw ? JSON.parse(raw) : [];
-    } catch {}
+    } catch (error){
+      console.error(error)
+    }
     const map = Object.create(null);
     (stored || []).forEach((c) => {
       if (c?.name) map[c.name] = c.color || "#868e96";
@@ -103,8 +105,10 @@ export default function CalendarMonth() {
     const day = arg.date.getDate();
     try {
       window.dispatchEvent(new CustomEvent("open-new-schedule", { detail: { day } }));
-    } catch {}
+    } catch (error){
+      console.error(error)
   };
+}
 
   const handleEventClick = (arg) => {
     const p = arg.event.extendedProps;
@@ -192,7 +196,9 @@ export default function CalendarMonth() {
           onClick={() => {
             try {
               window.dispatchEvent(new CustomEvent("open-new-schedule", { detail: { day: null } }));
-            } catch {}
+            } catch (error){
+              console.error(error)
+            }
           }}
           style={{
             border: "none",

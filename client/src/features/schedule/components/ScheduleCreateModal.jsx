@@ -96,7 +96,9 @@ export default function ScheduleCreateModal({
     // 저장 후 캘린더로 스크롤/하이라이트 시그널
     try {
       window.dispatchEvent(new CustomEvent("focus-day", { detail: { day: nDay } }));
-    } catch {}
+    } catch (error){
+      console.error(error)
+    }
   };
 
   const disabled = !title || !day;

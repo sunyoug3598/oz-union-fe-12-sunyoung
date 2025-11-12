@@ -16,7 +16,9 @@ const load = (key, fallback) => {
 const save = (key, val) => {
   try {
     localStorage.setItem(key, JSON.stringify(val));
-  } catch {}
+  } catch (error){
+    console.error(error)
+  }
 };
 
 // 초기 사용자 목록(데모용)

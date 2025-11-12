@@ -28,7 +28,9 @@ function loadFromLS() {
 function saveToLS(cats) {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify(cats));
-  } catch {}
+  } catch (error){
+    console.error(error)
+  }
 }
 
 export function CategoryProvider({ children }) {

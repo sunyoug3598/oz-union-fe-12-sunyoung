@@ -3,7 +3,7 @@ import Modal from "./Modal";
 import { useAuth } from "../../app/store/authStore";
 
 export default function SignUpModal({ open, onClose, onSwitchToLogin }) {
-  const { signup, validateNickname, validatePassword } = useAuth.getState();
+  const { validateNickname, validatePassword } = useAuth.getState();
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [nick, setNick] = useState("");
