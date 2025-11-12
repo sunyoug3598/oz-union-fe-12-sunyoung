@@ -15,13 +15,12 @@ export default function CategoryPage() {
 }
 
 function CategoryPageInner() {
-  const { filtered, keyword, setKeyword, viewMode, setViewMode } = useCategories();
+  const { filtered, keyword, setKeyword } = useCategories();
   const { events } = useEvents();
   const [openCreate, setOpenCreate] = useState(false);
   const [activeCat, setActiveCat] = useState(null);
   const [searchParams] = useSearchParams();
 
-  // ✅ URL 쿼리에서 filter 파라미터 읽기
   useEffect(() => {
     const q = searchParams.get("filter");
     if (q) setKeyword(q);
@@ -31,8 +30,8 @@ function CategoryPageInner() {
     const map = {};
     const allDays = Object.keys(events || {});
     for (const d of allDays) {
-      (events[d] || []).forEach(ev => {
-        const key = ev.category || "기타";
+      (events[d] || []).forEach((ev) => {
+        const key = ev.category || "미분류"; // ← 기본값을 '미분류'로
         map[key] = (map[key] || 0) + 1;
       });
     }
@@ -54,14 +53,6 @@ function CategoryPageInner() {
         >
           + 새 카테고리
         </button>
-        <select
-          value={viewMode}
-          onChange={(e) => setViewMode(e.target.value)}
-          style={{ border: "1px solid #ddd", borderRadius: 8, padding: "10px 12px" }}
-        >
-          <option value="cards">카드형 보기</option>
-          <option value="list" disabled>목록형 (준비중)</option>
-        </select>
       </header>
 
       <CategoryGrid

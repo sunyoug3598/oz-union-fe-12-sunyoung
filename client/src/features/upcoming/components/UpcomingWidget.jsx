@@ -3,20 +3,49 @@ import { useEvents } from "../../../app/store/eventsStore";
 import { useSettings } from "../../../app/store/settingsStore";
 import { getIconColor, getIconChar } from "../../../app/constants/uiTokens";
 import ScheduleDetailModal from "../../schedule/components/ScheduleDetailModal";
+import ScheduleCreateModal from "../../schedule/components/ScheduleCreateModal";
 import CategoryBadge from "../../schedule/components/CategoryBadge";
 
 export default function UpcomingWidget() {
-  const { getUpcoming, deleteEvent } = useEvents();
+  const { getUpcoming, deleteEvent, editEvent, addEvent } = useEvents();
   const range = useSettings((s) => s.upcomingRangeDays);
   const showCompleted = useSettings((s) => s.showCompleted);
+
+  // 상세/편집 모달 상태
   const [detail, setDetail] = useState(null);
+  const [editor, setEditor] = useState({ open: false, day: null, initial: null });
 
   const items = useMemo(() => {
     const raw = getUpcoming(range);
     const list = showCompleted ? raw : raw.filter((ev) => getIconChar(ev.icon) !== "✕");
-    // 날짜 정렬 보장
     return list.slice().sort((a, b) => a.day - b.day);
   }, [getUpcoming, range, showCompleted]);
+
+  // 편집 저장 처리
+  const handleSubmit = (payload, targetDay) => {
+    if (payload.id) {
+      // 수정
+      editEvent(payload.fromDay ?? targetDay, targetDay, {
+        id: payload.id,
+        title: payload.title,
+        timeLabel: payload.timeLabel,
+        category: payload.category,
+        repeat: payload.repeat, // null | "monthly"
+        icon: payload.icon,
+      });
+    } else {
+      // 새로 추가 (이 경로는 보통 쓰이지 않지만 대비)
+      addEvent(targetDay, {
+        title: payload.title,
+        timeLabel: payload.timeLabel,
+        category: payload.category,
+        repeat: payload.repeat,
+        icon: payload.icon,
+      });
+    }
+    setEditor({ open: false, day: null, initial: null });
+    setDetail(null);
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, height: "100%" }}>
@@ -49,15 +78,42 @@ export default function UpcomingWidget() {
         )}
       </div>
 
+      {/* 상세 모달 */}
       <ScheduleDetailModal
         open={!!detail}
         event={detail}
         onClose={() => setDetail(null)}
-        onEdit={() => alert("편집은 캘린더에서 먼저 연결하자! (다음 단계)")}
-        onDelete={(ev) => {
-          deleteEvent(ev.day, ev.id);
-          setDetail(null);
+        onEdit={(ev) => {
+          // 위젯 안에서 바로 편집 모달 오픈
+          setEditor({
+            open: true,
+            day: ev.day,
+            initial: {
+              id: ev.id,
+              day: ev.day,
+              title: ev.title,
+              timeLabel: ev.timeLabel,
+              category: ev.category,
+              repeat: ev.repeat, // null | "monthly"
+              icon: getIconChar(ev.icon),
+            },
+          });
         }}
+        onDelete={(ev) => {
+          if (confirm("정말 삭제하시겠어요?")) {
+            deleteEvent(ev.day, ev.id);
+            setDetail(null);
+          }
+        }}
+      />
+
+      {/* 편집 모달 (위젯 전용) */}
+      <ScheduleCreateModal
+        open={editor.open}
+        onClose={() => setEditor({ open: false, day: null, initial: null })}
+        onSubmit={handleSubmit}
+        defaultDay={editor.day ?? undefined}
+        initialEvent={editor.initial}
       />
     </div>
   );
@@ -83,8 +139,8 @@ function UpcomingCard({ ev, onClick }) {
       }}
     >
       {/* 날짜/시간 */}
-      <div style={{ minWidth: 70, fontSize: 12, color: "#666" }}>
-        <div style={{ fontWeight: 600 }}>{formatDay(ev.day)}</div>
+      <div style={{ minWidth: 90, fontSize: 12, color: "#666" }}>
+        <div style={{ fontWeight: 600 }}>{formatDate(ev.day)}</div>
         <div>{ev.timeLabel || "시간 미정"}</div>
       </div>
 
@@ -103,7 +159,11 @@ function UpcomingCard({ ev, onClick }) {
             {ch}
           </span>
           <strong style={{ fontSize: 14 }}>{ev.title}</strong>
-          {ev.repeat === "monthly" && <span title="매월 반복" style={{ marginLeft: 6 }}>🔁</span>}
+          {ev.repeat === "monthly" && (
+            <span title="매월 반복" style={{ marginLeft: 6 }}>
+              🔁
+            </span>
+          )}
         </div>
         <div style={{ fontSize: 12, color: "#777", marginTop: 2 }}>
           <CategoryBadge name={ev.category} />
@@ -113,10 +173,10 @@ function UpcomingCard({ ev, onClick }) {
   );
 }
 
-function formatDay(day) {
+/** 날짜를 항상 'MM월 DD일' 형식으로 표기 */
+function formatDate(day) {
   const now = new Date();
-  const today = Math.min(30, Math.max(1, now.getDate()));
-  if (day === today) return "오늘";
-  if (day === today + 1) return "내일";
-  return `정해진 날 ${String(day).padStart(2, "0")}`;
+  const month = now.getMonth() + 1; // 1~12
+  const dd = String(day).padStart(2, "0");
+  return `${month}월 ${dd}일`;
 }

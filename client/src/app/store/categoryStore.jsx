@@ -1,88 +1,87 @@
-import { createContext, useContext, useMemo, useState, useCallback, useEffect } from "react";
-import { CATEGORY_COLORS } from "../constants/uiTokens";
+import { createContext, useContext, useMemo, useState } from "react";
 
+const CategoryCtx = createContext();
 const LS_KEY = "solan.categories.v1";
 
-// 기본 카테고리
-const DEFAULT_CATEGORIES = [
-  { id: "cat-personal", name: "개인",  color: CATEGORY_COLORS?.개인  ?? "#51cf66" },
-  { id: "cat-work",     name: "업무",  color: CATEGORY_COLORS?.업무  ?? "#339af0" },
-  { id: "cat-health",   name: "건강",  color: CATEGORY_COLORS?.건강  ?? "#ff8787" },
-  { id: "cat-finance",  name: "금융",  color: CATEGORY_COLORS?.금융  ?? "#845ef7" },
-  { id: "cat-etc",      name: "기타",  color: CATEGORY_COLORS?.기타  ?? "#868e96" },
+// 기본 카테고리(색상 포함) + '미분류' 분리
+const defaultCategories = [
+  { id: 1, name: "개인",   color: "#2f8fcb" },
+  { id: 2, name: "업무",   color: "#444444" },
+  { id: 3, name: "건강",   color: "#16a34a" },
+  { id: 4, name: "금융",   color: "#e3b400" },
+  { id: 5, name: "기타",   color: "#7a7a7a" },
+  { id: 6, name: "미분류", color: "#adb5bd" }, // ← 별도 취급
 ];
 
 function loadFromLS() {
   try {
     const raw = localStorage.getItem(LS_KEY);
-    return raw ? JSON.parse(raw) : DEFAULT_CATEGORIES;
+    const base = raw ? JSON.parse(raw) : defaultCategories;
+    // '미분류'가 없었던 오래된 저장값 보정
+    const hasUncategorized = (base || []).some((c) => c.name === "미분류");
+    return hasUncategorized ? base : [...base, { id: Date.now(), name: "미분류", color: "#adb5bd" }];
   } catch {
-    return DEFAULT_CATEGORIES;
+    return defaultCategories;
   }
 }
 
-function saveToLS(categories) {
+function saveToLS(cats) {
   try {
-    localStorage.setItem(LS_KEY, JSON.stringify(categories));
+    localStorage.setItem(LS_KEY, JSON.stringify(cats));
   } catch {}
 }
-
-const CategoryCtx = createContext(null);
 
 export function CategoryProvider({ children }) {
   const [categories, setCategories] = useState(loadFromLS());
   const [keyword, setKeyword] = useState("");
-  const [viewMode, setViewMode] = useState("cards"); // 'cards' | 'list'(예정)
 
-  // ✅ 카테고리 변경 시 자동 저장
-  useEffect(() => {
-    saveToLS(categories);
-  }, [categories]);
-
-  // 새 카테고리 추가
-  const addCategory = useCallback((name, color) => {
-    const trimmed = (name || "").trim();
-    if (!trimmed) return;
-    if (categories.some((c) => c.name === trimmed)) return; // 중복 방지
-    const id = `cat-${Date.now()}`;
-    setCategories((prev) => [...prev, { id, name: trimmed, color: color || "#888888" }]);
-  }, [categories]);
-
-  // 이름 변경
-  const renameCategory = useCallback((id, nextName) => {
-    const trimmed = (nextName || "").trim();
-    if (!trimmed) return;
-    setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, name: trimmed } : c)));
-  }, []);
-
-  // 색상 변경
-  const setColor = useCallback((id, newColor) => {
-    if (!newColor) return;
-    setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, color: newColor } : c)));
-  }, []);
-
-  // 삭제
-  const removeCategory = useCallback((id) => {
-    setCategories((prev) => prev.filter((c) => c.id !== id));
-  }, []);
-
-  // 검색 필터
   const filtered = useMemo(() => {
-    const q = keyword.trim();
+    const q = (keyword || "").trim().toLowerCase();
     if (!q) return categories;
-    const lower = q.toLowerCase();
-    return categories.filter((c) => c.name.toLowerCase().includes(lower));
+    return categories.filter((c) => (c.name || "").toLowerCase().includes(q));
   }, [categories, keyword]);
+
+  const addCategory = (name, color = "#7a7a7a") => {
+    const id = Date.now();
+    const item = { id, name, color };
+    const next = [...categories, item];
+    setCategories(next);
+    saveToLS(next);
+    return item;
+  };
+
+  const removeCategory = (id) => {
+    // '미분류'는 삭제 금지
+    const target = categories.find((c) => c.id === id);
+    if (target?.name === "미분류") return;
+    const next = categories.filter((c) => c.id !== id);
+    setCategories(next);
+    saveToLS(next);
+  };
+
+  const renameCategory = (id, nextName) => {
+    const target = categories.find((c) => c.id === id);
+    if (target?.name === "미분류") return; // 예약어 보호
+    const next = categories.map((c) => (c.id === id ? { ...c, name: nextName } : c));
+    setCategories(next);
+    saveToLS(next);
+  };
+
+  const recolorCategory = (id, nextColor) => {
+    const next = categories.map((c) => (c.id === id ? { ...c, color: nextColor } : c));
+    setCategories(next);
+    saveToLS(next);
+  };
 
   const value = {
     categories,
     filtered,
-    keyword, setKeyword,
-    viewMode, setViewMode,
+    keyword,
+    setKeyword,
     addCategory,
-    renameCategory,
-    setColor,
     removeCategory,
+    renameCategory,
+    recolorCategory,
   };
 
   return <CategoryCtx.Provider value={value}>{children}</CategoryCtx.Provider>;

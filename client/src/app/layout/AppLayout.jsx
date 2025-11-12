@@ -8,6 +8,8 @@ import RoutineWidget from "../../features/routine/components/RoutineWidget";
 import NewScheduleController from "../../features/schedule/components/NewScheduleController";
 
 export default function AppLayout() {
+  const CONTAINER_MAX = 1320; // ✅ 전체 레이아웃 폭 확장
+
   return (
     <div
       style={{
@@ -21,20 +23,23 @@ export default function AppLayout() {
       <Header />
 
       <main
+        className="app-container"
         style={{
           flex: 1,
-          padding: "16px 20px 40px",
-          maxWidth: "1400px",
+          padding: "20px 0 40px",
+          maxWidth: `${CONTAINER_MAX}px`,
           width: "100%",
           margin: "0 auto",
           display: "grid",
-          gridTemplateColumns: "280px 1.4fr 280px",
-          gap: "32px",
+          // ✅ 중앙 칼럼 대폭 확대
+          gridTemplateColumns: "220px minmax(760px, 1fr) 260px",
+          columnGap: "20px",
           alignItems: "start",
+          overflowX: "hidden",
         }}
       >
         {/* 왼쪽 사이드바 */}
-        <aside style={{ display: "grid", gap: "12px" }}>
+        <aside style={{ display: "grid", gap: "12px", minWidth: 0 }}>
           <CardWrapper>
             <MemoWidget />
           </CardWrapper>
@@ -43,27 +48,24 @@ export default function AppLayout() {
           </CardWrapper>
         </aside>
 
-        {/* 메인 컨텐츠 */}
+        {/* 중앙 캘린더 섹션 */}
         <section
           style={{
             backgroundColor: "#fff",
             border: "1px solid #ddd",
             borderRadius: "10px",
-            padding: "32px 36px",
+            padding: "20px 20px",
             minHeight: "610px",
             boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
             width: "100%",
-            maxWidth: "960px",
-            margin: "0 auto",
-            display: "flex",
-            flexDirection: "column",
+            minWidth: 0,
           }}
         >
           <Outlet />
         </section>
 
         {/* 오른쪽 사이드바 */}
-        <aside style={{ display: "grid", gap: "12px" }}>
+        <aside style={{ display: "grid", gap: "12px", minWidth: 0 }}>
           <CardWrapper>
             <UpcomingWidget />
           </CardWrapper>
@@ -74,8 +76,6 @@ export default function AppLayout() {
       </main>
 
       <Footer />
-
-      {/* ✅ 전역 '새 일정' 모달 컨트롤러 */}
       <NewScheduleController />
     </div>
   );
@@ -84,6 +84,7 @@ export default function AppLayout() {
 function CardWrapper({ children }) {
   return (
     <section
+      className="widget-card"
       style={{
         backgroundColor: "#fff",
         border: "1px solid #ddd",
@@ -92,11 +93,11 @@ function CardWrapper({ children }) {
         boxShadow: "0 2px 6px rgba(0,0,0,0.04)",
         fontSize: "14px",
         lineHeight: 1.5,
-        transition: "all 0.3s ease",
         minHeight: "300px",
         display: "flex",
         flexDirection: "column",
         justifyContent: "flex-start",
+        minWidth: 0,
       }}
     >
       {children}

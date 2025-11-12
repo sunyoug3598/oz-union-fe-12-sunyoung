@@ -1,4 +1,4 @@
-// src/app/router.jsx
+// client/src/app/router.jsx
 import { createBrowserRouter } from "react-router-dom";
 import AppLayout from "./layout/AppLayout";
 import CalendarPage from "../features/schedule/pages/CalendarPage";
@@ -7,7 +7,7 @@ import CategoryPage from "../features/category/pages/CategoryPage";
 import MyPage from "../features/mypage/pages/MyPage";
 import LoginPage from "../features/auth/pages/LoginPage";
 import SignUpPage from "../features/auth/pages/SignUpPage";
-import NotFound from "../shared/components/NotFound";
+import NotFound from "../shared/pages/NotFound.jsx";     
 import ProtectedRoute from "../features/auth/components/ProtectedRoute";
 
 export const router = createBrowserRouter([

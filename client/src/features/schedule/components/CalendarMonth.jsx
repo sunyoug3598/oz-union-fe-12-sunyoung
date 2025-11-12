@@ -1,250 +1,254 @@
-import { useMemo, useState } from "react";
-import Modal from "../../../shared/components/Modal";
-import DayScheduleList from "./DayScheduleList";
-import ScheduleDetailModal from "./ScheduleDetailModal";
+import { useMemo, useRef, useState } from "react";
+import FullCalendar from "@fullcalendar/react";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import interactionPlugin from "@fullcalendar/interaction";
 import { useEvents } from "../../../app/store/eventsStore";
 import { getIconChar, getIconColor } from "../../../app/constants/uiTokens";
+import ScheduleDetailModal from "./ScheduleDetailModal";
+
+const CAT_LS_KEY = "solan.categories.v1";
 
 export default function CalendarMonth() {
-  const { events } = useEvents();              // ✅ 전역 스토어 사용
-  const [month] = useState("2025년 11월");
-  const [openDay, setOpenDay] = useState(null);
-  const [selectedEvent, setSelectedEvent] = useState(null);
+  const { events } = useEvents();
 
-  const days = Array.from({ length: 30 }, (_, i) => i + 1);
+  const calRef = useRef(null);
+  const [title, setTitle] = useState("");
+  const [detail, setDetail] = useState(null);
+  const [catFilter, setCatFilter] = useState("전체");
 
-  // 모달용 당일 아이템
-  const dayItems = useMemo(() => {
-    if (!openDay) return [];
-    return (events[openDay] || []).map((e) => ({
-      id: e.id,
-      day: openDay,
-      title: e.title,
-      timeLabel: e.timeLabel,
-      category: e.category,
-      repeat: e.repeat || null,
-      statusIcon: getIconChar(e.icon), // ✅ 표준화
-    }));
-  }, [openDay, events]);
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
 
-  const handleClickDay = (day) => setOpenDay(day);
+  // ✅ 카테고리 목록 (필터용) — 가나다순 정렬
+  const categories = useMemo(() => {
+    const set = new Set();
+    Object.values(events || {}).forEach((list) => {
+      (list || []).forEach((ev) => set.add(ev.category || "미분류"));
+    });
+    const arr = Array.from(set).sort((a, b) => a.localeCompare(b, "ko"));
+    return ["전체", ...arr];
+  }, [events]);
+
+  // 카테고리명 → 색상 매핑 (localStorage → 기본 팔레트 폴백)
+  const colorByName = useMemo(() => {
+    let stored = [];
+    try {
+      const raw = localStorage.getItem(CAT_LS_KEY);
+      stored = raw ? JSON.parse(raw) : [];
+    } catch {}
+    const map = Object.create(null);
+    (stored || []).forEach((c) => {
+      if (c?.name) map[c.name] = c.color || "#868e96";
+    });
+    return {
+      개인: map["개인"] ?? "#2f8fcb",
+      업무: map["업무"] ?? "#444444",
+      건강: map["건강"] ?? "#16a34a",
+      금융: map["금융"] ?? "#e3b400",
+      기타: map["기타"] ?? "#7a7a7a",
+      미분류: map["미분류"] ?? "#adb5bd",
+      ...map,
+    };
+  }, []);
+
+  // 배경색에 따른 텍스트 컬러
+  const pickTextColor = (hex = "#999") => {
+    const h = hex.replace("#", "");
+    const r = parseInt(h.slice(0, 2), 16);
+    const g = parseInt(h.slice(2, 4), 16);
+    const b = parseInt(h.slice(4, 6), 16);
+    const L = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return L > 0.6 ? "#111" : "#fff";
+  };
+
+  // 이벤트 변환 + 색상 적용
+  const baseEvents = useMemo(() => {
+    const out = [];
+    Object.keys(events || {}).forEach((dayKey) => {
+      const dayNum = Number(dayKey);
+      (events[dayKey] || []).forEach((ev) => {
+        const ch = getIconChar(ev.icon);
+        const cat = ev.category || "미분류";
+        const bg = colorByName[cat] || "#868e96";
+        const fg = pickTextColor(bg);
+        out.push({
+          id: ev.id,
+          title: `${ch} ${ev.title}`,
+          start: new Date(y, m, dayNum),
+          allDay: true,
+          backgroundColor: bg,
+          borderColor: bg,
+          textColor: fg,
+          extendedProps: {
+            day: dayNum,
+            titleOnly: ev.title,
+            timeLabel: ev.timeLabel,
+            category: cat,
+            repeat: ev.repeat || null,
+            iconChar: ch,
+          },
+        });
+      });
+    });
+    return out;
+  }, [events, y, m, colorByName]);
+
+  const fcEvents = useMemo(() => {
+    if (catFilter === "전체") return baseEvents;
+    return baseEvents.filter((e) => e.extendedProps.category === catFilter);
+  }, [baseEvents, catFilter]);
+
+  const handleDateClick = (arg) => {
+    const day = arg.date.getDate();
+    try {
+      window.dispatchEvent(new CustomEvent("open-new-schedule", { detail: { day } }));
+    } catch {}
+  };
+
+  const handleEventClick = (arg) => {
+    const p = arg.event.extendedProps;
+    setDetail({
+      id: arg.event.id,
+      day: p.day,
+      title: p.titleOnly,
+      timeLabel: p.timeLabel,
+      category: p.category,
+      repeat: p.repeat,
+      icon: p.iconChar,
+    });
+  };
+
+  const renderEventContent = (arg) => {
+    const p = arg.event.extendedProps;
+    const color = getIconColor(p.iconChar);
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        <span style={{ color, fontWeight: p.iconChar === "★" ? 700 : 400 }}>{p.iconChar}</span>
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {p.titleOnly}
+        </span>
+      </div>
+    );
+  };
+
+  const getApi = () => calRef.current?.getApi?.();
+  const goPrev = () => getApi()?.prev();
+  const goNext = () => getApi()?.next();
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-      <TopBar month={month} onPrev={() => {}} onNext={() => {}} />
-
-      <WeekHeader />
-
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {/* 제목(연월) 다음에 화살표 */}
       <div
         style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(7, 1fr)",
-          gap: "8px",
-          fontSize: "13px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          marginBottom: 2,
         }}
       >
-        {days.map((day) => {
-          const list = events[day] || []; // ✅ 스토어에서 그 날 일정
-          return (
-            <div
-              key={day}
-              onClick={() => handleClickDay(day)}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f0f0f0")}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#fafafa")}
-              style={{
-                backgroundColor: "#fafafa",
-                border: "1px solid #eee",
-                borderRadius: "6px",
-                minHeight: "110px",
-                padding: "6px 8px",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "flex-start",
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-              }}
-            >
-              <strong style={{ fontSize: "12px", color: "#222" }}>{day}</strong>
+        <h2 style={{ margin: 0, fontSize: 28, fontWeight: 800 }}>{title || ""}</h2>
 
-              {list.slice(0, 2).map((event) => {
-                const ch = getIconChar(event.icon);
-                return (
-                  <div
-                    key={event.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px",
-                      marginTop: "4px",
-                      fontSize: "12px",
-                      lineHeight: 1.3,
-                      color: "#333",
-                      width: "100%",
-                    }}
-                  >
-                    <span
-                      style={{
-                        color: getIconColor(ch),
-                        fontWeight: ch === "★" ? 700 : 400,
-                      }}
-                    >
-                      {ch}
-                    </span>
-                    <span
-                      style={{
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        maxWidth: "100%",
-                      }}
-                    >
-                      {event.title}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })}
+        <div style={{ display: "flex", gap: 8 }}>
+          <GhostIconButton onClick={goPrev} ariaLabel="이전 달">‹</GhostIconButton>
+          <GhostIconButton onClick={goNext} ariaLabel="다음 달">›</GhostIconButton>
+        </div>
       </div>
 
-      {/* 당일 리스트 모달 */}
-      <Modal
-        open={openDay != null}
-        onClose={() => setOpenDay(null)}
-        title={`${month} ${openDay ?? ""}일 일정`}
-        footer={
-          <>
-            <button
-              onClick={() => setOpenDay(null)}
-              style={{
-                border: "1px solid #ccc",
-                background: "#fff",
-                borderRadius: 6,
-                padding: "6px 10px",
-                cursor: "pointer",
-              }}
-            >
-              닫기 (Esc)
-            </button>
-            <button
-              onClick={() => {
-                window.dispatchEvent(
-                  new CustomEvent("open-new-schedule", { detail: { day: openDay } })
-                );
-              }}
-              style={{
-                border: "none",
-                background: "#000",
-                color: "#fff",
-                borderRadius: 6,
-                padding: "6px 12px",
-                cursor: "pointer",
-                fontWeight: 700,
-              }}
-            >
-              + 새 일정
-            </button>
-          </>
-        }
+      {/* 컨트롤 바: 카테고리 필터 + 새 일정 */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          alignItems: "center",
+          gap: 8,
+          marginTop: -4,
+          marginBottom: -4,
+        }}
       >
-        <DayScheduleList
-          items={dayItems}
-          onClickItem={(ev) => {
-            setOpenDay(null);
-            setSelectedEvent(ev);
+        <label style={{ fontSize: 13, color: "#555" }}>
+          카테고리&nbsp;
+          <select
+            value={catFilter}
+            onChange={(e) => setCatFilter(e.target.value)}
+            style={{
+              border: "1px solid #ddd",
+              borderRadius: 6,
+              padding: "6px 10px",
+              fontSize: 13,
+              background: "#fff",
+            }}
+          >
+            {categories.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <button
+          onClick={() => {
+            try {
+              window.dispatchEvent(new CustomEvent("open-new-schedule", { detail: { day: null } }));
+            } catch {}
           }}
-        />
-      </Modal>
-
-      {/* 일정 상세 모달 */}
-      <ScheduleDetailModal
-        open={!!selectedEvent}
-        onClose={() => setSelectedEvent(null)}
-        event={selectedEvent}
-      />
-    </div>
-  );
-}
-
-function TopBar({ month, onPrev, onNext }) {
-  const navBtnStyle = {
-    background: "none",
-    border: "1px solid #ccc",
-    borderRadius: "4px",
-    width: "24px",
-    height: "24px",
-    cursor: "pointer",
-    fontSize: "16px",
-    lineHeight: "20px",
-    textAlign: "center",
-    color: "#555",
-  };
-  const filterBtnStyle = {
-    border: "1px solid #ccc",
-    borderRadius: "4px",
-    padding: "4px 8px",
-    backgroundColor: "#fff",
-    fontSize: "12px",
-    cursor: "pointer",
-  };
-  const addBtnStyle = {
-    border: "none",
-    borderRadius: "4px",
-    padding: "6px 12px",
-    backgroundColor: "#000",
-    color: "#fff",
-    fontSize: "12px",
-    cursor: "pointer",
-    fontWeight: 700,
-  };
-
-  const openNewSchedule = (day = null) => {
-    window.dispatchEvent(new CustomEvent("open-new-schedule", { detail: { day } }));
-  };
-
-  return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        borderBottom: "1px solid #eee",
-        paddingBottom: "8px",
-        marginBottom: "8px",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-        <button onClick={onPrev} style={navBtnStyle}>‹</button>
-        <h2 style={{ fontSize: "18px", margin: 0 }}>{month}</h2>
-        <button onClick={onNext} style={navBtnStyle}>›</button>
-      </div>
-      <div style={{ display: "flex", gap: "8px" }}>
-        <button style={filterBtnStyle}>필터</button>
-        <button style={addBtnStyle} onClick={() => openNewSchedule(null)}>
+          style={{
+            border: "none",
+            background: "#000",
+            color: "#fff",
+            borderRadius: 6,
+            padding: "8px 12px",
+            fontWeight: 700,
+            fontSize: 13,
+            cursor: "pointer",
+          }}
+        >
           + 새 일정
         </button>
       </div>
+
+      {/* 캘린더 */}
+      <FullCalendar
+        ref={calRef}
+        plugins={[dayGridPlugin, interactionPlugin]}
+        initialView="dayGridMonth"
+        height="auto"
+        expandRows
+        headerToolbar={false}
+        dayMaxEventRows={3}
+        events={fcEvents}
+        dateClick={handleDateClick}
+        eventClick={handleEventClick}
+        eventContent={renderEventContent}
+        datesSet={(arg) => setTitle(arg.view.title)}
+      />
+
+      <ScheduleDetailModal open={!!detail} event={detail} onClose={() => setDetail(null)} />
     </div>
   );
 }
 
-function WeekHeader() {
+function GhostIconButton({ onClick, children, ariaLabel }) {
   return (
-    <div
+    <button
+      onClick={onClick}
+      aria-label={ariaLabel}
       style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(7, 1fr)",
-        textAlign: "center",
-        fontWeight: 600,
-        fontSize: "13px",
-        color: "#666",
-        marginBottom: "4px",
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        border: "1px solid #cbd5e1",
+        background: "#fff",
+        color: "#111",
+        fontSize: 18,
+        lineHeight: "34px",
+        cursor: "pointer",
+        boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
       }}
     >
-      {["일", "월", "화", "수", "목", "금", "토"].map((d) => (
-        <div key={d} style={{ padding: "6px 0" }}>{d}</div>
-      ))}
-    </div>
+      {children}
+    </button>
   );
 }

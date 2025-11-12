@@ -1,18 +1,31 @@
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; }
-body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
-main { max-width: 960px; margin: 0 auto; padding: 20px; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  overflow-x: hidden;
+}
 
-/* 사이드 위젯 공통 반응형 스타일 */
+/* 공통 컨테이너 */
+.app-container {
+  max-width: 1320px; /* ✅ 1320px로 확대 */
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+/* 위젯 전용 카드 */
+.widget-card {}
+
+/* 반응형(위젯 카드만 축소) */
 @media (max-width: 900px) {
-  section {
+  .widget-card {
     padding: 12px 14px !important;
     font-size: 13px !important;
   }
 }
 
 @media (max-width: 700px) {
-  section {
+  .widget-card {
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
@@ -23,19 +36,14 @@ main { max-width: 960px; margin: 0 auto; padding: 20px; }
     cursor: pointer !important;
     transition: all 0.2s ease;
   }
-
-  section:hover {
-    background-color: #f9f9f9;
-  }
-
-  /* 내부 텍스트 숨기고 타이틀만 */
-  section > div > div:last-child {
-    display: none !important;
-  }
+  .widget-card:hover { background-color: #f9f9f9; }
+  .widget-card > div > div:last-child { display: none !important; }
 }
 
+/* 1200px 이하일 때 적응형 */
 @media (max-width: 1200px) {
-  main {
-    grid-template-columns: 250px 1fr 250px !important;
+  main.app-container {
+    grid-template-columns: 200px minmax(520px, 1fr) 240px !important;
+    column-gap: 14px !important;
   }
 }

@@ -1,24 +1,25 @@
-// src/features/schedule/components/CategoryBadge.jsx
 import { useNavigate } from "react-router-dom";
 
 export default function CategoryBadge({
   name,
-  to,                 // 외부에서 주면 우선
+  to,
   stopPropagation = true,
 }) {
   const nav = useNavigate();
 
+  const label = name || "미분류"; // ← 기본 라벨
   const palette = {
-    개인: "#51cf66",
-    업무: "#339af0",
-    건강: "#ff8787",
-    금융: "#845ef7",
-    기타: "#868e96",
+    개인:   "#51cf66",
+    업무:   "#339af0",
+    건강:   "#ff8787",
+    금융:   "#845ef7",
+    기타:   "#868e96",
+    미분류: "#adb5bd",
   };
 
-  const fg = palette[name] || "#495057";
-  const bg = (palette[name] || "#ced4da") + "22";
-  const href = to ?? `/categories?filter=${encodeURIComponent(name || "")}`;
+  const fg = palette[label] || "#495057";
+  const bg = (palette[label] || "#ced4da") + "22";
+  const href = to ?? `/categories?filter=${encodeURIComponent(label)}`;
 
   return (
     <span
@@ -27,7 +28,7 @@ export default function CategoryBadge({
         if (stopPropagation) e.stopPropagation();
         nav(href);
       }}
-      title={`${name} 카테고리 보기`}
+      title={`${label} 카테고리 보기`}
       style={{
         display: "inline-block",
         padding: "2px 8px",
@@ -39,7 +40,7 @@ export default function CategoryBadge({
         userSelect: "none",
       }}
     >
-      {name}
+      {label}
     </span>
   );
 }

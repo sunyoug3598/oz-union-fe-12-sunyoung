@@ -56,7 +56,7 @@ export default function SignUpPage() {
             <input
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
-              placeholder="떠니"
+              placeholder="닉네임"
               style={input}
               required
               minLength={2}

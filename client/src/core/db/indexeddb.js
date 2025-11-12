@@ -1,3 +1,7 @@
-// TODO: openDB('solan', SCHEMA_VERSION) 및 stores(users, settings, categories, notes, schedules)
-// export helpers: get, set, list, remove
-export const db = {};
+export const db = {
+  open: async () => Promise.resolve(true),
+  get: async () => null,
+  set: async () => true,
+  list: async () => [],
+  remove: async () => true,
+};

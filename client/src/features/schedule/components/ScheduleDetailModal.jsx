@@ -3,7 +3,7 @@ import Modal from "../../../shared/components/Modal";
 export default function ScheduleDetailModal({ open, onClose, event, onEdit, onDelete }) {
   if (!event) return null;
 
-  const { title, timeLabel, category, repeat, statusIcon } = event;
+  const { title, timeLabel, category, repeat, icon } = event;
   const repeatLabel = repeat === "monthly" ? "매월" : "없음";
 
   return (
@@ -25,8 +25,8 @@ export default function ScheduleDetailModal({ open, onClose, event, onEdit, onDe
         <Row label="카테고리">{category || "-"}</Row>
         <Row label="반복">{repeatLabel}</Row>
         <Row label="상태">
-          <span style={{ color: statusIcon === "★" ? "#E3B400" : "#000", fontWeight: statusIcon === "★" ? 700 : 400 }}>
-            {statusIcon || "•"}
+          <span style={{ color: icon === "★" ? "#E3B400" : "#000", fontWeight: icon === "★" ? 700 : 400 }}>
+            {icon || "•"}
           </span>
         </Row>
       </div>
