@@ -11,7 +11,6 @@ export default function UpcomingWidget() {
   const range = useSettings((s) => s.upcomingRangeDays);
   const showCompleted = useSettings((s) => s.showCompleted);
 
-  // 상세/편집 모달 상태
   const [detail, setDetail] = useState(null);
   const [editor, setEditor] = useState({ open: false, day: null, initial: null });
 
@@ -21,20 +20,17 @@ export default function UpcomingWidget() {
     return list.slice().sort((a, b) => a.day - b.day);
   }, [getUpcoming, range, showCompleted]);
 
-  // 편집 저장 처리
   const handleSubmit = (payload, targetDay) => {
     if (payload.id) {
-      // 수정
       editEvent(payload.fromDay ?? targetDay, targetDay, {
         id: payload.id,
         title: payload.title,
         timeLabel: payload.timeLabel,
         category: payload.category,
-        repeat: payload.repeat, // null | "monthly"
+        repeat: payload.repeat,
         icon: payload.icon,
       });
     } else {
-      // 새로 추가 (이 경로는 보통 쓰이지 않지만 대비)
       addEvent(targetDay, {
         title: payload.title,
         timeLabel: payload.timeLabel,
@@ -49,6 +45,7 @@ export default function UpcomingWidget() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, height: "100%" }}>
+      {/* 헤더 */}
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <strong>Upcoming</strong>
         <span style={{ fontSize: 12, color: "#888" }}>
@@ -56,25 +53,26 @@ export default function UpcomingWidget() {
         </span>
       </header>
 
+      {/* ✅ 내부 라운드 박스 제거: 투명 리스트 + 스크롤만 유지 */}
       <div
         style={{
-          border: "1px solid #eee",
-          borderRadius: 10,
-          padding: 12,
           height: 240,
           overflowY: "auto",
+          padding: 0,            // 내부 여백 제거
+          border: "none",        // 테두리 제거
+          background: "transparent",
         }}
       >
         {items.length === 0 ? (
-          <div style={{ color: "#888", fontSize: 14 }}>
-            {showCompleted ? "예정된 일정이 없습니다." : "표시할 예정된 일정이 없습니다.(완료 숨김 중)"}
-          </div>
+          <div style={{ color: "#888", fontSize: 13 }}>표시할 예정된 일정이 없습니다.</div>
         ) : (
-          <div style={{ display: "grid", gap: 10 }}>
+          <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 8 }}>
             {items.map((ev) => (
-              <UpcomingCard key={ev.id} ev={ev} onClick={() => setDetail(ev)} />
+              <li key={ev.id}>
+                <UpcomingRow ev={ev} onClick={() => setDetail(ev)} />
+              </li>
             ))}
-          </div>
+          </ul>
         )}
       </div>
 
@@ -84,7 +82,6 @@ export default function UpcomingWidget() {
         event={detail}
         onClose={() => setDetail(null)}
         onEdit={(ev) => {
-          // 위젯 안에서 바로 편집 모달 오픈
           setEditor({
             open: true,
             day: ev.day,
@@ -94,7 +91,7 @@ export default function UpcomingWidget() {
               title: ev.title,
               timeLabel: ev.timeLabel,
               category: ev.category,
-              repeat: ev.repeat, // null | "monthly"
+              repeat: ev.repeat,
               icon: getIconChar(ev.icon),
             },
           });
@@ -107,7 +104,7 @@ export default function UpcomingWidget() {
         }}
       />
 
-      {/* 편집 모달 (위젯 전용) */}
+      {/* 편집 모달 */}
       <ScheduleCreateModal
         open={editor.open}
         onClose={() => setEditor({ open: false, day: null, initial: null })}
@@ -119,7 +116,8 @@ export default function UpcomingWidget() {
   );
 }
 
-function UpcomingCard({ ev, onClick }) {
+/** 한 줄 아이템 (라운드 카드 X, 심플한 라인 스타일) */
+function UpcomingRow({ ev, onClick }) {
   const ch = getIconChar(ev.icon);
 
   return (
@@ -128,47 +126,42 @@ function UpcomingCard({ ev, onClick }) {
       style={{
         width: "100%",
         textAlign: "left",
-        border: "1px solid #e5e5e5",
-        borderRadius: 8,
-        padding: "10px 12px",
-        background: "#fafafa",
-        display: "flex",
+        display: "grid",
+        gridTemplateColumns: "72px 16px 1fr auto",
         alignItems: "center",
         gap: 10,
+        padding: "6px 0",                 // 얇게
+        background: "transparent",
+        border: "none",
+        borderBottom: "1px solid #f0f0f0", // 구분선만
         cursor: "pointer",
       }}
     >
-      {/* 날짜/시간 */}
-      <div style={{ minWidth: 90, fontSize: 12, color: "#666" }}>
-        <div style={{ fontWeight: 600 }}>{formatDate(ev.day)}</div>
-        <div>{ev.timeLabel || "시간 미정"}</div>
-      </div>
+      {/* 날짜 (월 일만, 폰트 작게) */}
+      <span style={{ color: "#666", fontSize: 12 }}>{formatDate(ev.day)}</span>
 
-      {/* 구분선 */}
-      <div style={{ width: 1, height: 24, background: "#ddd" }} />
+      {/* 불릿 아이콘 */}
+      <span style={{ color: getIconColor(ch), fontWeight: ch === "★" ? 700 : 400 }}>{ch}</span>
 
-      {/* 아이콘 + 제목/카테고리 */}
-      <div style={{ flex: 1 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span
-            style={{
-              color: getIconColor(ch),
-              fontWeight: ch === "★" ? 700 : 400,
-            }}
-          >
-            {ch}
-          </span>
-          <strong style={{ fontSize: 14 }}>{ev.title}</strong>
-          {ev.repeat === "monthly" && (
-            <span title="매월 반복" style={{ marginLeft: 6 }}>
-              🔁
-            </span>
-          )}
-        </div>
-        <div style={{ fontSize: 12, color: "#777", marginTop: 2 }}>
-          <CategoryBadge name={ev.category} />
-        </div>
-      </div>
+      {/* 제목 */}
+      <span
+        style={{
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          color: "#222",
+          fontSize: 13,
+          fontWeight: 600,
+        }}
+        title={ev.title}
+      >
+        {ev.title}
+      </span>
+
+      {/* 카테고리 뱃지 (색상 동기화 보류 중 — 형태만 유지) */}
+      <span>
+        <CategoryBadge name={ev.category} />
+      </span>
     </button>
   );
 }
@@ -176,7 +169,7 @@ function UpcomingCard({ ev, onClick }) {
 /** 날짜를 항상 'MM월 DD일' 형식으로 표기 */
 function formatDate(day) {
   const now = new Date();
-  const month = now.getMonth() + 1; // 1~12
+  const month = now.getMonth() + 1;
   const dd = String(day).padStart(2, "0");
   return `${month}월 ${dd}일`;
 }

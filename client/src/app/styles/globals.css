@@ -47,3 +47,28 @@ body {
     column-gap: 14px !important;
   }
 }
+
+/* ===== 얇은 세로 스크롤 유틸 (Upcoming 등에서 사용) ===== */
+.scroll-slim {
+  scrollbar-width: thin;                 /* Firefox */
+  scrollbar-color: #cbd5e1 transparent;
+}
+.scroll-slim::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scroll-slim::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+.scroll-slim::-webkit-scrollbar-track {
+  background: transparent;
+}
+/* Upcoming: 내부 카드/라운드 제거 강제 */
+.upcoming-plain .inner, 
+.upcoming-plain .card, 
+.upcoming-plain-row {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}

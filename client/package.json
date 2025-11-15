@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "fix" : "eslint --fix",
+    "fix": "eslint --fix",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -15,6 +15,7 @@
     "@fullcalendar/daygrid": "^6.1.19",
     "@fullcalendar/interaction": "^6.1.19",
     "@fullcalendar/react": "^6.1.19",
+    "dexie": "^4.2.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.9.4",

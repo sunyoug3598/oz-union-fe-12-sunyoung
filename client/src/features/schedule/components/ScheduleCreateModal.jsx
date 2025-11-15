@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Modal from "../../../shared/components/Modal";
 import { getIconChar } from "../../../app/constants/uiTokens";
 
@@ -12,30 +12,47 @@ export default function ScheduleCreateModal({
   const isEdit = !!initialEvent;
 
   const [title, setTitle] = useState("");
-  const [day, setDay] = useState(defaultDay || "");
+  // date 입력용 ISO 문자열 (YYYY-MM-DD)
+  const [dateISO, setDateISO] = useState("");
   const [timeLabel, setTimeLabel] = useState("");
   const [category, setCategory] = useState("개인");
-  const [repeat, setRepeat] = useState("none");
+  const [repeat, setRepeat] = useState("none"); // none | daily | weekly | monthly
   const [statusIcon, setStatusIcon] = useState("•");
+  const [errors, setErrors] = useState({});
 
-  const [errors, setErrors] = useState({}); // {title, day, time}
+  // 오늘(문구용)
+  const todayISO = new Date().toISOString().split("T")[0];
 
-  // 오늘(1~30 범위로 보정)
-  const today = useMemo(() => Math.min(30, Math.max(1, new Date().getDate())), []);
+  // defaultDay(1~30)를 ISO로 바꿔서 초기 세팅
+  const dayToISO = (dayNum) => {
+    if (!dayNum) return "";
+    const d = new Date();
+    d.setDate(dayNum);
+    return d.toISOString().split("T")[0];
+  };
+  // ISO를 day(1~31)로 환산
+  const isoToDay = (iso) => {
+    try {
+      return new Date(iso).getDate();
+    } catch {
+      return null;
+    }
+  };
 
   useEffect(() => {
     if (!open) return;
 
     if (isEdit) {
       setTitle(initialEvent?.title ?? "");
-      setDay(initialEvent?.day ?? "");
+      // 기존 구조: day(1~30)만 있었음 -> ISO로 변환
+      setDateISO(initialEvent?.dateISO || dayToISO(initialEvent?.day));
       setTimeLabel(initialEvent?.timeLabel ?? "");
       setCategory(initialEvent?.category ?? "개인");
-      setRepeat(initialEvent?.repeat === "monthly" ? "monthly" : "none");
+      setRepeat(initialEvent?.repeat ?? "none");
       setStatusIcon(getIconChar(initialEvent?.icon ?? "•"));
     } else {
       setTitle("");
-      setDay(defaultDay || "");
+      setDateISO(defaultDay ? dayToISO(defaultDay) : "");
       setTimeLabel("");
       setCategory("개인");
       setRepeat("none");
@@ -47,25 +64,8 @@ export default function ScheduleCreateModal({
   // 간단 검증
   const validate = () => {
     const next = {};
-    const t = (title || "").trim();
-
-    // 제목
-    if (!t) next.title = "제목을 입력하세요.";
-
-    // 날짜 (1~30)
-    const n = Number(day);
-    if (!n || !Number.isInteger(n)) next.day = "날짜는 숫자여야 해요.";
-    else if (n < 1 || n > 30) next.day = "1~30 사이로 입력하세요.";
-
-    // 시간: 비어있으면 허용, 값이 있으면 HH:MM 또는 '하루 종일' 허용
-    const time = (timeLabel || "").trim();
-    if (time) {
-      const re = /^([01]\d|2[0-3]):[0-5]\d$/; // 00:00 ~ 23:59
-      if (time !== "하루 종일" && !re.test(time)) {
-        next.time = "시간은 HH:MM 또는 '하루 종일' 형식으로 입력하세요.";
-      }
-    }
-
+    if (!(title || "").trim()) next.title = "제목을 입력하세요.";
+    if (!dateISO) next.day = "날짜를 선택하세요.";
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -73,35 +73,27 @@ export default function ScheduleCreateModal({
   const handleSave = () => {
     if (!validate()) return;
 
-    const nDay = Number(day);
-
-    // 과거 날짜 경고 (이번 달 가정)
-    if (!isEdit && nDay < today) {
-      const ok = confirm(`선택한 날짜가 오늘(${today}일)보다 이전입니다. 저장할까요?`);
-      if (!ok) return;
-    }
-
+    const day = isoToDay(dateISO);
     const payload = {
       id: initialEvent?.id,
       title: (title || "").trim(),
-      timeLabel: (timeLabel || "").trim() || "시간 미정",
+      timeLabel: (timeLabel || "").trim() || "하루 종일",
       category,
-      repeat: repeat === "monthly" ? "monthly" : null,
+      repeat: repeat === "none" ? null : repeat, // none은 null 저장
       icon: getIconChar(statusIcon),
       fromDay: initialEvent?.day ?? null,
     };
 
-    onSubmit?.(payload, nDay);
+    onSubmit?.(payload, day);
 
-    // 저장 후 캘린더로 스크롤/하이라이트 시그널
     try {
-      window.dispatchEvent(new CustomEvent("focus-day", { detail: { day: nDay } }));
-    } catch (error){
-      console.error(error)
+      window.dispatchEvent(new CustomEvent("focus-day", { detail: { day } }));
+    } catch (e) {
+      console.error(e);
     }
   };
 
-  const disabled = !title || !day;
+  const disabled = !title || !dateISO;
 
   return (
     <Modal
@@ -141,51 +133,64 @@ export default function ScheduleCreateModal({
       }
     >
       <div style={{ display: "grid", gap: 12 }}>
+        {/* 제목 */}
         <Field label="제목" error={errors.title}>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="일정 제목"
-            style={input(errors.title)}
+            style={input(!!errors.title)}
           />
         </Field>
 
+        {/* 날짜: 달력 */}
         <Field label="날짜" error={errors.day}>
           <input
-            type="number"
-            min={1}
-            max={30}
-            value={day}
-            onChange={(e) => setDay(e.target.value)}
-            placeholder="1~30"
-            style={{ ...input(errors.day), width: 120 }}
+            type="date"
+            value={dateISO}
+            onChange={(e) => setDateISO(e.target.value)}
+            min={todayISO}
+            style={{ ...input(!!errors.day), width: 180 }}
           />
-          <span style={{ color: "#888", fontSize: 12, marginLeft: 6 }}>
-            오늘은 {today}일
-          </span>
         </Field>
 
+        {/* 시간: 스크롤 선택 + 안내 */}
         <Field label="시간" error={errors.time}>
           <input
+            type="time"
             value={timeLabel}
             onChange={(e) => setTimeLabel(e.target.value)}
-            placeholder="예: 14:00 / 하루 종일 (미입력 가능)"
-            style={input(errors.time)}
+            step="300" // 5분 간격
+            style={{ ...input(!!errors.time), width: 140 }}
           />
+          <div style={{ color: "#888", fontSize: 12, marginTop: 4 }}>
+            미입력 시 <b>하루 종일</b>로 표시됩니다.
+          </div>
         </Field>
 
+        {/* 카테고리: 기존 드롭다운 그대로(Provider 없이 안정 운영) */}
         <Field label="카테고리">
-          <select value={category} onChange={(e) => setCategory(e.target.value)} style={input()}>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            style={input()}
+          >
             <option>개인</option>
             <option>업무</option>
             <option>건강</option>
             <option>금융</option>
             <option>기타</option>
+            <option>미분류</option>
           </select>
         </Field>
 
+        {/* 상태 아이콘 */}
         <Field label="상태 아이콘">
-          <select value={statusIcon} onChange={(e) => setStatusIcon(e.target.value)} style={input()}>
+          <select
+            value={statusIcon}
+            onChange={(e) => setStatusIcon(e.target.value)}
+            style={input()}
+          >
             <option value="•">• 할 일</option>
             <option value="✕">✕ 완료</option>
             <option value="→">→ 이월</option>
@@ -195,9 +200,16 @@ export default function ScheduleCreateModal({
           </select>
         </Field>
 
+        {/* 반복 옵션 확장 */}
         <Field label="반복">
-          <select value={repeat} onChange={(e) => setRepeat(e.target.value)} style={input()}>
+          <select
+            value={repeat}
+            onChange={(e) => setRepeat(e.target.value)}
+            style={input()}
+          >
             <option value="none">없음</option>
+            <option value="daily">매일</option>
+            <option value="weekly">매주</option>
             <option value="monthly">매월</option>
           </select>
         </Field>

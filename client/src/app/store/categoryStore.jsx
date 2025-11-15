@@ -89,6 +89,7 @@ export function CategoryProvider({ children }) {
   return <CategoryCtx.Provider value={value}>{children}</CategoryCtx.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useCategories() {
   const ctx = useContext(CategoryCtx);
   if (!ctx) throw new Error("useCategories must be used within CategoryProvider");
